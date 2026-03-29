@@ -1,0 +1,9 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "npm create": true,
+        "y": true,
+        "npx --yes create-vite@latest": true,
+        "git remote": true,
+        "git add": true
+    }
+}

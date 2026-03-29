@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "powershell -ExecutionPolicy Bypass -File .github/hooks/build-frontend.ps1",
+        "timeout": 60
+      }
+    ]
+  }
+}
