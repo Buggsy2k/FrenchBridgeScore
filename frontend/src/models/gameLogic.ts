@@ -183,6 +183,20 @@ export function submitResults(
 }
 
 /**
+ * End the game early, trimming unplayed hands and marking it finished.
+ */
+export function endGameEarly(game: GameState): GameState {
+  const hands = game.hands.filter((h) => h.phase === 'complete');
+  const lastIndex = Math.max(0, hands.length - 1);
+  return {
+    ...game,
+    hands,
+    currentHandIndex: lastIndex,
+    phase: 'finished',
+  };
+}
+
+/**
  * Update the trump suit for a specific hand.
  */
 export function setHandTrumpSuit(game: GameState, handIndex: number, trumpSuit?: TrumpSuit): GameState {

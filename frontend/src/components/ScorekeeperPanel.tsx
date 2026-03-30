@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
 import type { TrumpSuit } from '../models/types';
 import BiddingForm from './BiddingForm';
@@ -14,10 +14,20 @@ const SUITS: { value: TrumpSuit; icon: string; color: string }[] = [
 ];
 
 export default function ScorekeeperPanel() {
-  const { game, submitBids, submitResults, setCurrentTrumpSuit } = useGame();
+  const { game, submitBids, submitResults, setCurrentTrumpSuit, endCurrentGame } = useGame();
   const [showEditPlayers, setShowEditPlayers] = useState(false);
   const [showSuitPicker, setShowSuitPicker] = useState(false);
   const [totalBid, setTotalBid] = useState<number | null>(null);
+  const [confirmEndGame, setConfirmEndGame] = useState(false);
+
+  // Re-focus the first digit input (e.g. after suit picker interaction)
+  const refocusFirstInput = useCallback(() => {
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLInputElement>('input[inputmode="numeric"]');
+      el?.focus();
+    });
+  }, []);
+
   if (!game) return null;
 
   const currentHand = game.hands[game.currentHandIndex];
@@ -93,6 +103,7 @@ export default function ScorekeeperPanel() {
                         onClick={() => {
                           setCurrentTrumpSuit(s.value);
                           setShowSuitPicker(false);
+                          refocusFirstInput();
                         }}
                         className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition ${
                           currentHand.trumpSuit === s.value
@@ -107,6 +118,8 @@ export default function ScorekeeperPanel() {
                 ) : (
                   <button
                     type="button"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => setShowSuitPicker(true)}
                     className="w-10 h-10 rounded-lg text-xl flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition"
                   >
@@ -145,6 +158,37 @@ export default function ScorekeeperPanel() {
       {/* Right panel: persistent scoreboard */}
       <div className="lg:w-96 w-full max-w-lg mx-auto lg:mx-0 lg:flex-initial">
         <Scoreboard />
+      </div>
+
+      {/* End Game button */}
+      <div className="w-full max-w-lg mx-auto lg:max-w-none lg:w-96">
+        {confirmEndGame ? (
+          <div className="bg-red-900/30 border border-red-600/50 rounded-xl p-4 space-y-3">
+            <p className="text-center text-red-300 font-semibold">End the game now?</p>
+            <p className="text-center text-gray-400 text-sm">Only completed hands will be scored.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmEndGame(false)}
+                className="flex-1 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { endCurrentGame(); setConfirmEndGame(false); }}
+                className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold transition"
+              >
+                End Game
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmEndGame(true)}
+            className="w-full py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-500 hover:text-gray-300 text-sm font-semibold transition"
+          >
+            End Game Early
+          </button>
+        )}
       </div>
 
       {showEditPlayers && (

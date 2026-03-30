@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import type { GameConfig, GameState, TrumpSuit, CompletedGame, PlayerStats } from '../models/types';
 import type { PlayerScore } from '../models/types';
-import { computeScoreboard, renamePlayers, editHand, replacePlayer, addPlayerToGame, removePlayerFromGame, reorderPlayers, setHandTrumpSuit, buildCompletedGame, computePlayerStats } from '../models/gameLogic';
+import { computeScoreboard, renamePlayers, editHand, replacePlayer, addPlayerToGame, removePlayerFromGame, reorderPlayers, setHandTrumpSuit, buildCompletedGame, computePlayerStats, endGameEarly } from '../models/gameLogic';
 import { LocalStorageGameService } from '../services/LocalStorageGameService';
 import type { IGameService } from '../services/IGameService';
 
@@ -31,6 +31,7 @@ interface GameContextValue {
   resumeGame: () => void;
   dismissSavedGame: () => void;
   resetGame: () => void;
+  endCurrentGame: () => Promise<void>;
   // Game history
   completedGames: CompletedGame[];
   playerStats: PlayerStats[];
@@ -187,6 +188,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setGame(null);
   }, [game]);
 
+  const endCurrentGame = useCallback(async () => {
+    if (!game || game.phase !== 'playing') return;
+    const updated = endGameEarly(game);
+    await service.saveGame(updated);
+    setGame(updated);
+  }, [game]);
+
   const playerStats = useMemo(() => computePlayerStats(completedGames), [completedGames]);
 
   const saveCurrentGame = useCallback(async () => {
@@ -225,13 +233,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
       resumeGame,
       dismissSavedGame,
       resetGame,
+      endCurrentGame,
       completedGames,
       playerStats,
       saveCurrentGame,
       loadHistory,
       deleteHistoryGame,
     }),
-    [game, scoreboard, lastConfig, savedGame, startGame, handleSubmitBids, handleSubmitResults, updatePlayerNames, editCompletedHand, replaceGamePlayer, addGamePlayer, removeGamePlayer, reorderGamePlayers, setCurrentTrumpSuit, resumeGame, dismissSavedGame, resetGame, completedGames, playerStats, saveCurrentGame, loadHistory, deleteHistoryGame]
+    [game, scoreboard, lastConfig, savedGame, startGame, handleSubmitBids, handleSubmitResults, updatePlayerNames, editCompletedHand, replaceGamePlayer, addGamePlayer, removeGamePlayer, reorderGamePlayers, setCurrentTrumpSuit, resumeGame, dismissSavedGame, resetGame, endCurrentGame, completedGames, playerStats, saveCurrentGame, loadHistory, deleteHistoryGame]
   );
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
