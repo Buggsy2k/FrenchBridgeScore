@@ -90,7 +90,7 @@ export default function ManagePlayers({ onBack }: Props) {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-              className="flex-[2] min-w-0 bg-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-2 min-w-0 bg-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
@@ -126,7 +126,7 @@ export default function ManagePlayers({ onBack }: Props) {
                         value={editFullName}
                         onChange={(e) => setEditFullName(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-                        className="flex-[2] min-w-0 bg-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-2 min-w-0 bg-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         autoFocus
                       />
                       <input
