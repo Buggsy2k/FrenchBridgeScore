@@ -6,6 +6,7 @@ import { LocalStorageGameService } from '../services/LocalStorageGameService';
 import type { IGameService } from '../services/IGameService';
 
 interface LastGameConfig {
+  playerIds: string[];
   playerNames: string[];
   playerFullNames: string[];
   firstDealerIndex: number;
@@ -112,6 +113,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resetGame = useCallback(() => {
     if (game) {
       setLastConfig({
+        playerIds: game.players.map((p) => p.id),
         playerNames: game.players.map((p) => p.name),
         playerFullNames: game.players.map((p) => p.fullName),
         firstDealerIndex: game.config.firstDealerIndex,

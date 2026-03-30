@@ -36,6 +36,7 @@ export interface Hand {
 }
 
 export interface GameConfig {
+  playerIds: string[];     // persistent unique IDs from player cache
   playerNames: string[];   // aliases used during game
   playerFullNames: string[]; // full names for cache
   firstDealerIndex: number;

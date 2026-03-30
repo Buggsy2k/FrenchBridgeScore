@@ -47,7 +47,7 @@ export function calculateScore(bid: number, tricksTaken: number): number {
  */
 export function createGame(config: GameConfig): GameState {
   const players: Player[] = config.playerNames.map((name, i) => ({
-    id: `player-${i}`,
+    id: config.playerIds[i],
     name,
     fullName: config.playerFullNames?.[i] ?? name,
     order: i,

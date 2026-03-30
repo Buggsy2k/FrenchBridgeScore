@@ -5,6 +5,7 @@ import { getCachedPlayers, upsertCachedPlayers } from '../services/PlayerCacheSe
 import PlayerSelect from './PlayerSelect';
 
 interface PlayerEntry {
+  cachedId: string | null;  // persistent ID from player cache
   fullName: string;
   alias: string;
 }
@@ -23,11 +24,12 @@ export default function GameSetup({ onManagePlayers }: Props) {
   const [players, setPlayers] = useState<PlayerEntry[]>(() => {
     if (lastConfig) {
       return lastConfig.playerNames.map((alias, i) => ({
+        cachedId: lastConfig.playerIds?.[i] ?? null,
         fullName: lastConfig.playerFullNames?.[i] ?? alias,
         alias,
       }));
     }
-    return Array.from({ length: 4 }, () => ({ fullName: '', alias: '' }));
+    return Array.from({ length: 4 }, () => ({ cachedId: null, fullName: '', alias: '' }));
   });
   const [firstDealerIndex, setFirstDealerIndex] = useState(lastConfig?.firstDealerIndex ?? 0);
   const [customMaxHands, setCustomMaxHands] = useState<number | null>(lastConfig?.maxHands ?? null);
@@ -47,17 +49,17 @@ export default function GameSetup({ onManagePlayers }: Props) {
     setPlayerCount(clamped);
     setPlayers((prev) => {
       const next = [...prev];
-      while (next.length < clamped) next.push({ fullName: '', alias: '' });
+      while (next.length < clamped) next.push({ cachedId: null, fullName: '', alias: '' });
       return next.slice(0, clamped);
     });
     if (firstDealerIndex >= clamped) setFirstDealerIndex(0);
     setCustomMaxHands(null);
   }
 
-  function handlePlayerChange(index: number, fullName: string, alias: string) {
+  function handlePlayerChange(index: number, fullName: string, alias: string, cachedId: string | null) {
     setPlayers((prev) => {
       const next = [...prev];
-      next[index] = { fullName, alias };
+      next[index] = { cachedId, fullName, alias };
       return next;
     });
   }
@@ -76,7 +78,16 @@ export default function GameSetup({ onManagePlayers }: Props) {
     // Save to player cache
     upsertCachedPlayers(trimmed);
     refreshCache();
+    // Resolve persistent IDs: use cached ID if available, otherwise generate a new one
+    const playerIds = players.slice(0, playerCount).map((p) => {
+      if (p.cachedId) return p.cachedId;
+      const cached = cachedPlayers.find(
+        (c) => c.fullName.toLowerCase() === p.fullName.trim().toLowerCase()
+      );
+      return cached?.id ?? crypto.randomUUID();
+    });
     await startGame({
+      playerIds,
       playerNames: trimmed.map((p) => p.alias),
       playerFullNames: trimmed.map((p) => p.fullName),
       firstDealerIndex,
@@ -125,6 +136,7 @@ export default function GameSetup({ onManagePlayers }: Props) {
               index={i}
               fullName={p.fullName}
               alias={p.alias}
+              cachedId={p.cachedId}
               cachedPlayers={cachedPlayers}
               usedFullNames={usedFullNames}
               onSelect={handlePlayerChange}

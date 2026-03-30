@@ -5,9 +5,10 @@ interface PlayerSelectProps {
   index: number;
   fullName: string;
   alias: string;
+  cachedId: string | null;
   cachedPlayers: CachedPlayer[];
   usedFullNames: string[];
-  onSelect: (index: number, fullName: string, alias: string) => void;
+  onSelect: (index: number, fullName: string, alias: string, cachedId: string | null) => void;
   inputRef?: (el: HTMLInputElement | null) => void;
   onEnter?: () => void;
 }
@@ -16,6 +17,7 @@ export default function PlayerSelect({
   index,
   fullName,
   alias,
+  cachedId,
   cachedPlayers,
   usedFullNames,
   onSelect,
@@ -49,7 +51,7 @@ export default function PlayerSelect({
 
   function selectPlayer(p: CachedPlayer) {
     setQuery(p.fullName);
-    onSelect(index, p.fullName, p.alias);
+    onSelect(index, p.fullName, p.alias, p.id);
     setShowDropdown(false);
     setHighlightIdx(-1);
   }
@@ -58,8 +60,8 @@ export default function PlayerSelect({
     setQuery(value);
     setShowDropdown(true);
     setHighlightIdx(-1);
-    // If typing a new name, treat it as both fullName and alias
-    onSelect(index, value, alias || value);
+    // If typing a new name, treat it as both fullName and alias (no cached ID)
+    onSelect(index, value, alias || value, null);
   }
 
   function handleBlur() {
@@ -68,7 +70,7 @@ export default function PlayerSelect({
       setShowDropdown(false);
       // If user typed something not matched, use query as fullName and alias
       if (query.trim() && query !== fullName) {
-        onSelect(index, query.trim(), alias || query.trim());
+        onSelect(index, query.trim(), alias || query.trim(), null);
       }
     }, 150);
   }
@@ -115,7 +117,7 @@ export default function PlayerSelect({
           type="text"
           placeholder="Alias"
           value={alias}
-          onChange={(e) => onSelect(index, fullName, e.target.value)}
+          onChange={(e) => onSelect(index, fullName, e.target.value, cachedId)}
           className="w-20 sm:w-24 shrink-0 bg-gray-700 rounded-lg px-2 py-1.5 text-base sm:text-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
