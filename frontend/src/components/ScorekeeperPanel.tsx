@@ -8,6 +8,7 @@ export default function ScorekeeperPanel() {
   const { game, submitBids, submitResults, updatePlayerNames } = useGame();
   const [editingNames, setEditingNames] = useState(false);
   const [draftNames, setDraftNames] = useState<Record<string, string>>({});
+  const [totalBid, setTotalBid] = useState<number | null>(null);
   if (!game) return null;
 
   const currentHand = game.hands[game.currentHandIndex];
@@ -77,9 +78,36 @@ export default function ScorekeeperPanel() {
               Hand {currentHand.handNumber}{' '}
               <span className="text-gray-400 text-lg font-normal">of {totalHands} ({handsRemaining} remain)</span>
             </h2>
-            <p className="text-lg text-blue-400 font-semibold">
-              {currentHand.cardsDealt} card{currentHand.cardsDealt !== 1 ? 's' : ''}
-            </p>
+            <div className="flex items-center justify-center gap-4 mt-1">
+              <span className="text-lg text-blue-400 font-semibold">
+                {currentHand.cardsDealt} card{currentHand.cardsDealt !== 1 ? 's' : ''}
+              </span>
+              {currentHand.phase === 'bidding' && totalBid !== null && (
+                <span className={`text-lg font-semibold ${
+                  totalBid === currentHand.cardsDealt ? 'text-yellow-400' : 'text-red-400'
+                }`}>
+                  {totalBid === currentHand.cardsDealt
+                    ? 'Even'
+                    : totalBid > currentHand.cardsDealt
+                      ? `${totalBid - currentHand.cardsDealt} over`
+                      : `${currentHand.cardsDealt - totalBid} under`}
+                </span>
+              )}
+              {currentHand.phase === 'results' && (() => {
+                const tb = currentHand.bids.reduce((s, b) => s + b.bid, 0);
+                return (
+                  <span className={`text-lg font-semibold ${
+                    tb === currentHand.cardsDealt ? 'text-yellow-400' : 'text-red-400'
+                  }`}>
+                    {tb === currentHand.cardsDealt
+                      ? 'Even'
+                      : tb > currentHand.cardsDealt
+                        ? `${tb - currentHand.cardsDealt} over`
+                        : `${currentHand.cardsDealt - tb} under`}
+                  </span>
+                );
+              })()}
+            </div>
           </div>
 
           {/* Phase-specific form */}
@@ -88,6 +116,7 @@ export default function ScorekeeperPanel() {
               hand={currentHand}
               players={game.players}
               onSubmit={submitBids}
+              onTotalBidChange={setTotalBid}
             />
           )}
           {currentHand.phase === 'results' && (

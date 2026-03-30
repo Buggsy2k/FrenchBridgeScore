@@ -6,6 +6,17 @@
         "git remote": true,
         "git add": true,
         "npm run build": true,
-        "npx cap": true
-    }
+        "npx cap": true,
+        "npm run cap:run": true,
+        "java": true,
+        "where": true,
+        "Get-Command": true,
+        "&": true,
+        ".\\gradlew.bat": true
+    },
+    "files.exclude": {
+        "frontend/android": true
+    },
+    "java.configuration.updateBuildConfiguration": "disabled",
+    "gradle.autoDetect": "off"
 }

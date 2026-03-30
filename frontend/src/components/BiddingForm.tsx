@@ -6,9 +6,10 @@ interface BiddingFormProps {
   hand: Hand;
   players: Player[];
   onSubmit: (bids: { playerId: string; bid: number }[]) => void;
+  onTotalBidChange?: (total: number) => void;
 }
 
-export default function BiddingForm({ hand, players, onSubmit }: BiddingFormProps) {
+export default function BiddingForm({ hand, players, onSubmit, onTotalBidChange }: BiddingFormProps) {
   const [values, setValues] = useState<Record<string, number | null>>(
     () => Object.fromEntries(players.map((p) => [p.id, null]))
   );
@@ -20,6 +21,10 @@ export default function BiddingForm({ hand, players, onSubmit }: BiddingFormProp
     () => players.reduce((s, p) => s + (values[p.id] ?? 0), 0),
     [players, values]
   );
+
+  useEffect(() => {
+    onTotalBidChange?.(totalBid);
+  }, [totalBid, onTotalBidChange]);
 
   function handleChange(playerId: string, value: number) {
     setValues((prev) => ({ ...prev, [playerId]: value as number | null }));
@@ -106,11 +111,6 @@ export default function BiddingForm({ hand, players, onSubmit }: BiddingFormProp
           {totalBid}
         </span>
         <span className="text-gray-500"> / {hand.cardsDealt}</span>
-        {allFilled && totalBid !== hand.cardsDealt && (
-          <span className="text-red-400 font-semibold">
-            {' — '}{Math.abs(totalBid - hand.cardsDealt)}{totalBid > hand.cardsDealt ? ' overbid' : ' underbid'}
-          </span>
-        )}
       </div>
 
       <button

@@ -82,7 +82,7 @@ export default function ManagePlayers({ onBack }: Props) {
           <label className="block text-sm font-medium text-gray-400 mb-2">
             Add New Player
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               ref={nameRef}
               type="text"
@@ -90,7 +90,7 @@ export default function ManagePlayers({ onBack }: Props) {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-              className="flex-1 bg-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-[2] min-w-0 bg-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
@@ -98,7 +98,7 @@ export default function ManagePlayers({ onBack }: Props) {
               value={alias}
               onChange={(e) => setAlias(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-              className="flex-1 bg-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 min-w-0 bg-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={handleAdd}
@@ -119,34 +119,38 @@ export default function ManagePlayers({ onBack }: Props) {
             <ul className="space-y-2 max-h-80 overflow-y-auto">
               {players.map((p) =>
                 editingId === p.id ? (
-                  <li key={p.id} className="flex gap-2 items-center bg-gray-700/70 rounded-lg px-3 py-2">
-                    <input
-                      type="text"
-                      value={editFullName}
-                      onChange={(e) => setEditFullName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-                      className="flex-1 bg-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      autoFocus
-                    />
-                    <input
-                      type="text"
-                      value={editAlias}
-                      onChange={(e) => setEditAlias(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-                      className="flex-1 bg-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={saveEdit}
-                      className="text-green-400 hover:text-green-300 text-sm font-medium transition"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={cancelEdit}
-                      className="text-gray-400 hover:text-gray-200 text-sm transition"
-                    >
-                      Cancel
-                    </button>
+                  <li key={p.id} className="flex flex-col sm:flex-row gap-2 bg-gray-700/70 rounded-lg px-3 py-2">
+                    <div className="flex gap-2 flex-1 min-w-0">
+                      <input
+                        type="text"
+                        value={editFullName}
+                        onChange={(e) => setEditFullName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                        className="flex-[2] min-w-0 bg-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                      />
+                      <input
+                        type="text"
+                        value={editAlias}
+                        onChange={(e) => setEditAlias(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                        className="flex-1 min-w-0 bg-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex gap-2 items-center justify-end">
+                      <button
+                        onClick={saveEdit}
+                        className="text-green-400 hover:text-green-300 text-sm font-medium transition"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="text-gray-400 hover:text-gray-200 text-sm transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </li>
                 ) : (
                   <li key={p.id} className="flex items-center justify-between bg-gray-700/50 rounded-lg px-3 py-2">
