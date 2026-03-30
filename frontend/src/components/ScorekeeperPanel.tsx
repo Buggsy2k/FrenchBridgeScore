@@ -84,7 +84,7 @@ export default function ScorekeeperPanel() {
               </span>
               {currentHand.phase === 'bidding' && totalBid !== null && (
                 <span className={`text-lg font-semibold ${
-                  totalBid === currentHand.cardsDealt ? 'text-yellow-400' : 'text-red-400'
+                  totalBid === currentHand.cardsDealt ? 'text-green-400' : 'text-red-400'
                 }`}>
                   {totalBid === currentHand.cardsDealt
                     ? 'Even'
@@ -97,7 +97,7 @@ export default function ScorekeeperPanel() {
                 const tb = currentHand.bids.reduce((s, b) => s + b.bid, 0);
                 return (
                   <span className={`text-lg font-semibold ${
-                    tb === currentHand.cardsDealt ? 'text-yellow-400' : 'text-red-400'
+                    tb === currentHand.cardsDealt ? 'text-green-400' : 'text-red-400'
                   }`}>
                     {tb === currentHand.cardsDealt
                       ? 'Even'

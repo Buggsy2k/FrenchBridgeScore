@@ -70,17 +70,25 @@ export default function Scoreboard() {
           <table className="w-full text-base">
             <thead>
               <tr className="border-b border-gray-600">
-                <th className="text-left py-2 px-1 text-gray-400">Cards</th>
+                <th className="text-gray-400 align-bottom h-24 pb-2">
+                  <div className="flex items-end justify-center h-full">
+                    <span className="rotate-180 whitespace-nowrap text-sm" style={{ writingMode: 'vertical-rl' }}>Cards</span>
+                  </div>
+                </th>
                 {game.players.map((p) => {
                   const isLeader = lastTotals && lastTotals[p.id] === leadScore && leadScore > 0;
                   return (
                     <th
                       key={p.id}
-                      className={`text-center py-2 px-1 truncate max-w-[5rem] ${
+                      className={`align-bottom h-24 border-l border-gray-700 pb-2 ${
                         isLeader ? 'text-yellow-400' : 'text-gray-400'
                       }`}
                     >
-                      {p.name}{isLeader ? ' ★' : ''}
+                      <div className="flex items-end justify-center h-full">
+                        <span className="rotate-180 whitespace-nowrap text-sm" style={{ writingMode: 'vertical-rl' }}>
+                          {p.name}{isLeader ? ' ★' : ''}
+                        </span>
+                      </div>
                     </th>
                   );
                 })}
@@ -95,12 +103,12 @@ export default function Scoreboard() {
                   const tricksMatch = totalTricks === h.cardsDealt;
                   return (
                     <tr key={h.handNumber} className="border-b border-blue-500/30 bg-gray-700/30">
-                      <td className="py-2 px-1 text-gray-500 align-top">{h.cardsDealt}</td>
+                      <td className="py-2 px-1 text-gray-500 align-top w-6 text-center">{h.cardsDealt}</td>
                       {game.players.map((p) => {
                         const d = drafts[p.id] ?? { bid: 0, tricks: 0 };
                         const pts = calculateScore(d.bid, d.tricks);
                         return (
-                          <td key={p.id} className="text-center py-2 px-1 align-top">
+                          <td key={p.id} className="text-center py-2 px-1 align-top border-l border-gray-700">
                             <div className="flex flex-col items-center gap-1">
                               <div className="flex items-center gap-0.5">
                                 <input
@@ -155,26 +163,25 @@ export default function Scoreboard() {
                     className="border-b border-gray-700/50 cursor-pointer hover:bg-gray-700/30 transition"
                     onClick={() => startEditing(h)}
                   >
-                    <td className="py-2 px-1 text-gray-500">{h.cardsDealt}</td>
+                    <td className="py-0.5 px-1 text-gray-500 text-center">{h.cardsDealt}</td>
                     {game.players.map((p) => {
                       const r = h.results.find((x) => x.playerId === p.id);
                       const total = runningTotals[i]?.[p.id] ?? 0;
                       const made = r ? r.bid === r.tricksTaken : false;
                       return (
-                        <td key={p.id} className="text-center py-2 px-1">
-                          {r && (
-                            <div className="text-sm leading-tight">
-                              {made ? (
-                                <span className="text-green-400/70">{r.score}</span>
-                              ) : (
-                                <>
+                        <td key={p.id} className="text-center py-0.5 px-1 border-l border-gray-700">
+                          <div className="flex flex-col items-center leading-none">
+                            {r && (
+                              <span className="text-lg leading-none">
+                                {made ? (
+                                  <span className="text-green-400/70">{r.score}</span>
+                                ) : (
                                   <span className="text-red-400/50 line-through">{r.bid}</span>
-                                  <span className="text-red-400/50 ml-0.5">{r.tricksTaken}</span>
-                                </>
-                              )}
-                            </div>
-                          )}
-                          <span className="font-bold text-lg tabular-nums">{total}</span>
+                                )}
+                              </span>
+                            )}
+                            <span className="font-bold text-lg leading-none tabular-nums">{total}</span>
+                          </div>
                         </td>
                       );
                     })}

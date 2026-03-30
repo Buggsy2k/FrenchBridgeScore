@@ -35,12 +35,6 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
     onSubmit(results);
   }
 
-  const totalBids = useMemo(
-    () => players.reduce((s, p) => s + (hand.bids.find((b) => b.playerId === p.id)?.bid ?? 0), 0),
-    [players, hand.bids]
-  );
-  const bidDiff = totalBids - hand.cardsDealt;
-
   const rightLabels = useMemo(
     () => Object.fromEntries(
       players.map((p) => {
@@ -57,17 +51,6 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
 
   return (
     <div className="space-y-4">
-      {/* Bid analysis */}
-      <div className="text-center text-lg">
-        {bidDiff === 0 ? (
-          <span className="font-bold text-green-400">Even</span>
-        ) : (
-          <span className="font-bold text-red-400">
-            {Math.abs(bidDiff)} {bidDiff > 0 ? 'overbid' : 'underbid'}
-          </span>
-        )}
-      </div>
-
       <DigitInputRow
         players={players}
         values={values}
