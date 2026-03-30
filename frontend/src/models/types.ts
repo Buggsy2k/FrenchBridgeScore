@@ -66,3 +66,29 @@ export interface PlayerScore {
   totalScore: number;
   handScores: { handNumber: number; score: number; bid: number; tricksTaken: number }[];
 }
+
+// ─── Game History ───
+
+export interface CompletedGame {
+  id: string;
+  gameId: string;
+  players: Player[];
+  hands: Hand[];
+  config: GameConfig;
+  scoreboard: PlayerScore[];
+  winner: { playerId: string; playerName: string; totalScore: number };
+  completedAt: string;
+  createdAt: string;
+}
+
+export interface PlayerStats {
+  playerId: string;
+  playerName: string;
+  gamesPlayed: number;
+  wins: number;
+  winRate: number;
+  avgScore: number;
+  bestScore: number;
+  totalScore: number;
+  avgAccuracy: number; // % of hands where bid === tricksTaken
+}

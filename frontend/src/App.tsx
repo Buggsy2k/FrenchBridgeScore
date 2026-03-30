@@ -4,6 +4,8 @@ import GameSetup from './components/GameSetup';
 import ManagePlayers from './components/ManagePlayers';
 import ScorekeeperPanel from './components/ScorekeeperPanel';
 import GameOver from './components/GameOver';
+import GameHistory from './components/GameHistory';
+import GameStats from './components/GameStats';
 
 function RecoveryPrompt() {
   const { savedGame, resumeGame, dismissSavedGame } = useGame();
@@ -44,13 +46,15 @@ function RecoveryPrompt() {
 
 export default function App() {
   const { game, savedGame } = useGame();
-  const [page, setPage] = useState<'setup' | 'manage'>('setup');
+  const [page, setPage] = useState<'setup' | 'manage' | 'history' | 'stats'>('setup');
 
   if (!game && savedGame) return <RecoveryPrompt />;
 
   if (!game) {
     if (page === 'manage') return <ManagePlayers onBack={() => setPage('setup')} />;
-    return <GameSetup onManagePlayers={() => setPage('manage')} />;
+    if (page === 'history') return <GameHistory onBack={() => setPage('setup')} onStats={() => setPage('stats')} />;
+    if (page === 'stats') return <GameStats onBack={() => setPage('history')} />;
+    return <GameSetup onManagePlayers={() => setPage('manage')} onHistory={() => setPage('history')} />;
   }
   if (game.phase === 'finished') return <GameOver />;
   return <ScorekeeperPanel />;

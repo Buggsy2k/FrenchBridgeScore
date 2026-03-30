@@ -12,9 +12,10 @@ interface PlayerEntry {
 
 interface Props {
   onManagePlayers: () => void;
+  onHistory: () => void;
 }
 
-export default function GameSetup({ onManagePlayers }: Props) {
+export default function GameSetup({ onManagePlayers, onHistory }: Props) {
   const { startGame, lastConfig } = useGame();
 
   const [cachedPlayers, setCachedPlayers] = useState(() => getCachedPlayers());
@@ -209,12 +210,18 @@ export default function GameSetup({ onManagePlayers }: Props) {
         </button>
 
         {/* Manage Players link */}
-        <div className="border-t border-gray-700 pt-3">
+        <div className="border-t border-gray-700 pt-3 flex items-center justify-between">
           <button
             onClick={onManagePlayers}
             className="text-sm text-gray-400 hover:text-gray-200 transition"
           >
             Manage Players ({cachedPlayers.length})
+          </button>
+          <button
+            onClick={onHistory}
+            className="text-sm text-gray-400 hover:text-gray-200 transition"
+          >
+            Game History
           </button>
         </div>
       </div>

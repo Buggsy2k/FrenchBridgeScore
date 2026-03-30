@@ -1,11 +1,22 @@
+import { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import Scoreboard from './Scoreboard';
 
 export default function GameOver() {
-  const { game, scoreboard, resetGame } = useGame();
+  const { game, scoreboard, resetGame, saveCurrentGame, completedGames } = useGame();
+  const [saved, setSaved] = useState(false);
+
   if (!game) return null;
 
+  // Check if this game was already saved (by gameId match)
+  const alreadySaved = saved || completedGames.some((g) => g.gameId === game.id);
+
   const sorted = [...scoreboard].sort((a, b) => b.totalScore - a.totalScore);
+
+  async function handleSave() {
+    await saveCurrentGame();
+    setSaved(true);
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -36,12 +47,26 @@ export default function GameOver() {
             })}
           </div>
 
-          <button
-            onClick={resetGame}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-xl font-bold transition"
-          >
-            New Game
-          </button>
+          <div className="flex flex-col gap-3">
+            {!alreadySaved ? (
+              <button
+                onClick={handleSave}
+                className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 text-xl font-bold transition"
+              >
+                Save Results
+              </button>
+            ) : (
+              <div className="w-full py-3 rounded-xl bg-gray-700 text-center text-gray-400 text-xl font-bold">
+                ✓ Saved
+              </div>
+            )}
+            <button
+              onClick={resetGame}
+              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-xl font-bold transition"
+            >
+              New Game
+            </button>
+          </div>
         </div>
 
         {/* Detailed scoreboard */}

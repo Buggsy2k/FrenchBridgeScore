@@ -1,4 +1,4 @@
-import type { GameConfig, GameState, Hand, HandResult, Player, PlayerScore, TrumpSuit } from './types';
+import type { GameConfig, GameState, Hand, HandResult, Player, PlayerScore, TrumpSuit, CompletedGame, PlayerStats } from './types';
 
 /**
  * Calculate the maximum number of hands (peak) for a given player count.
@@ -286,4 +286,73 @@ export function reorderPlayers(game: GameState, playerIds: string[]): GameState 
     .filter((p): p is Player => p !== null);
 
   return { ...game, players };
+}
+
+/**
+ * Build a CompletedGame snapshot from a finished GameState.
+ */
+export function buildCompletedGame(game: GameState): CompletedGame {
+  const scoreboard = computeScoreboard(game);
+  const sorted = [...scoreboard].sort((a, b) => b.totalScore - a.totalScore);
+  const top = sorted[0];
+  return {
+    id: crypto.randomUUID(),
+    gameId: game.id,
+    players: game.players,
+    hands: game.hands,
+    config: game.config,
+    scoreboard,
+    winner: { playerId: top.playerId, playerName: top.playerName, totalScore: top.totalScore },
+    completedAt: new Date().toISOString(),
+    createdAt: game.createdAt,
+  };
+}
+
+/**
+ * Compute per-player stats across multiple completed games.
+ */
+export function computePlayerStats(games: CompletedGame[]): PlayerStats[] {
+  const map = new Map<string, {
+    name: string;
+    scores: number[];
+    wins: number;
+    totalHands: number;
+    accurateHands: number;
+  }>();
+
+  for (const game of games) {
+    for (const ps of game.scoreboard) {
+      let entry = map.get(ps.playerId);
+      if (!entry) {
+        entry = { name: ps.playerName, scores: [], wins: 0, totalHands: 0, accurateHands: 0 };
+        map.set(ps.playerId, entry);
+      }
+      entry.name = ps.playerName; // use latest name
+      entry.scores.push(ps.totalScore);
+      if (ps.playerId === game.winner.playerId) entry.wins++;
+      for (const hs of ps.handScores) {
+        entry.totalHands++;
+        if (hs.score > 0) entry.accurateHands++;
+      }
+    }
+  }
+
+  const stats: PlayerStats[] = [];
+  for (const [playerId, e] of map) {
+    const gamesPlayed = e.scores.length;
+    const totalScore = e.scores.reduce((a, b) => a + b, 0);
+    stats.push({
+      playerId,
+      playerName: e.name,
+      gamesPlayed,
+      wins: e.wins,
+      winRate: gamesPlayed > 0 ? Math.round((e.wins / gamesPlayed) * 100) : 0,
+      avgScore: gamesPlayed > 0 ? Math.round(totalScore / gamesPlayed) : 0,
+      bestScore: Math.max(...e.scores, 0),
+      totalScore,
+      avgAccuracy: e.totalHands > 0 ? Math.round((e.accurateHands / e.totalHands) * 100) : 0,
+    });
+  }
+
+  return stats.sort((a, b) => b.winRate - a.winRate || b.avgScore - a.avgScore);
 }

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
-import type { GameConfig, GameState, TrumpSuit } from '../models/types';
+import type { GameConfig, GameState, TrumpSuit, CompletedGame, PlayerStats } from '../models/types';
 import type { PlayerScore } from '../models/types';
-import { computeScoreboard, renamePlayers, editHand, replacePlayer, addPlayerToGame, removePlayerFromGame, reorderPlayers, setHandTrumpSuit } from '../models/gameLogic';
+import { computeScoreboard, renamePlayers, editHand, replacePlayer, addPlayerToGame, removePlayerFromGame, reorderPlayers, setHandTrumpSuit, buildCompletedGame, computePlayerStats } from '../models/gameLogic';
 import { LocalStorageGameService } from '../services/LocalStorageGameService';
 import type { IGameService } from '../services/IGameService';
 
@@ -31,6 +31,12 @@ interface GameContextValue {
   resumeGame: () => void;
   dismissSavedGame: () => void;
   resetGame: () => void;
+  // Game history
+  completedGames: CompletedGame[];
+  playerStats: PlayerStats[];
+  saveCurrentGame: () => Promise<void>;
+  loadHistory: () => Promise<void>;
+  deleteHistoryGame: (id: string) => Promise<void>;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -41,8 +47,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [game, setGame] = useState<GameState | null>(null);
   const [savedGame, setSavedGame] = useState<GameState | null>(null);
   const [lastConfig, setLastConfig] = useState<LastGameConfig | null>(null);
+  const [completedGames, setCompletedGames] = useState<CompletedGame[]>([]);
 
-  // On mount, check for an in-progress game to offer recovery
+  // On mount, check for an in-progress game to offer recovery and load history
   useEffect(() => {
     const activeId = service.getActiveGameId();
     if (activeId) {
@@ -54,6 +61,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
       });
     }
+    service.getCompletedGames().then(setCompletedGames);
   }, []);
 
   const scoreboard = useMemo(() => (game ? computeScoreboard(game) : []), [game]);
@@ -179,6 +187,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setGame(null);
   }, [game]);
 
+  const playerStats = useMemo(() => computePlayerStats(completedGames), [completedGames]);
+
+  const saveCurrentGame = useCallback(async () => {
+    if (!game || game.phase !== 'finished') return;
+    const completed = buildCompletedGame(game);
+    await service.saveCompletedGame(completed);
+    setCompletedGames((prev) => [...prev, completed]);
+  }, [game]);
+
+  const loadHistory = useCallback(async () => {
+    const history = await service.getCompletedGames();
+    setCompletedGames(history);
+  }, []);
+
+  const deleteHistoryGame = useCallback(async (id: string) => {
+    await service.deleteCompletedGame(id);
+    setCompletedGames((prev) => prev.filter((g) => g.id !== id));
+  }, []);
+
   const value = useMemo<GameContextValue>(
     () => ({
       game,
@@ -198,8 +225,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       resumeGame,
       dismissSavedGame,
       resetGame,
+      completedGames,
+      playerStats,
+      saveCurrentGame,
+      loadHistory,
+      deleteHistoryGame,
     }),
-    [game, scoreboard, lastConfig, savedGame, startGame, handleSubmitBids, handleSubmitResults, updatePlayerNames, editCompletedHand, replaceGamePlayer, addGamePlayer, removeGamePlayer, reorderGamePlayers, setCurrentTrumpSuit, resumeGame, dismissSavedGame, resetGame]
+    [game, scoreboard, lastConfig, savedGame, startGame, handleSubmitBids, handleSubmitResults, updatePlayerNames, editCompletedHand, replaceGamePlayer, addGamePlayer, removeGamePlayer, reorderGamePlayers, setCurrentTrumpSuit, resumeGame, dismissSavedGame, resetGame, completedGames, playerStats, saveCurrentGame, loadHistory, deleteHistoryGame]
   );
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

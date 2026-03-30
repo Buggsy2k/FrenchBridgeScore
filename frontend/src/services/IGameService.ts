@@ -1,4 +1,4 @@
-import type { GameConfig, GameState, TrumpSuit } from '../models/types';
+import type { GameConfig, GameState, TrumpSuit, CompletedGame } from '../models/types';
 
 /**
  * Abstract interface for game data operations.
@@ -16,4 +16,8 @@ export interface IGameService {
   getActiveGameId(): string | null;
   setActiveGameId(id: string): void;
   clearActiveGameId(): void;
+  // Game history
+  saveCompletedGame(game: CompletedGame): Promise<void>;
+  getCompletedGames(): Promise<CompletedGame[]>;
+  deleteCompletedGame(id: string): Promise<void>;
 }
