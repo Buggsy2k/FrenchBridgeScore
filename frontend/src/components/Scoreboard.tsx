@@ -1,11 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { calculateScore } from '../models/gameLogic';
+import type { TrumpSuit } from '../models/types';
+
+const SUIT_ICONS: Record<TrumpSuit, { icon: string; color: string }> = {
+  hearts:   { icon: '♥', color: 'text-red-500' },
+  spades:   { icon: '♠', color: 'text-gray-900' },
+  diamonds: { icon: '♦', color: 'text-red-500' },
+  clubs:    { icon: '♣', color: 'text-gray-900' },
+};
 
 export default function Scoreboard() {
   const { game, editCompletedHand } = useGame();
   const [editingHand, setEditingHand] = useState<number | null>(null);
   const [drafts, setDrafts] = useState<Record<string, { bid: number; tricks: number }>>({});
+  const [draftTrump, setDraftTrump] = useState<TrumpSuit | ''>('');
 
   if (!game) return null;
 
@@ -36,6 +45,7 @@ export default function Scoreboard() {
       d[r.playerId] = { bid: r.bid, tricks: r.tricksTaken };
     }
     setDrafts(d);
+    setDraftTrump(h.trumpSuit ?? '');
     setEditingHand(h.handNumber);
   }
 
@@ -45,9 +55,10 @@ export default function Scoreboard() {
       bid: drafts[p.id]?.bid ?? 0,
       tricksTaken: drafts[p.id]?.tricks ?? 0,
     }));
-    await editCompletedHand(h.handNumber, edits);
+    await editCompletedHand(h.handNumber, edits, draftTrump || undefined);
     setEditingHand(null);
     setDrafts({});
+    setDraftTrump('');
   }
 
   function updateDraft(playerId: string, field: 'bid' | 'tricks', value: string) {
@@ -103,7 +114,20 @@ export default function Scoreboard() {
                   const tricksMatch = totalTricks === h.cardsDealt;
                   return (
                     <tr key={h.handNumber} className="border-b border-blue-500/30 bg-gray-700/30">
-                      <td className="py-2 px-1 text-gray-500 align-top w-6 text-center">{h.cardsDealt}</td>
+                      <td className="py-2 px-1 text-gray-500 align-top w-6 text-center">
+                      {h.cardsDealt}
+                      <select
+                        value={draftTrump}
+                        onChange={(e) => setDraftTrump(e.target.value as TrumpSuit | '')}
+                        className="block w-full mt-1 bg-gray-600 rounded text-xs text-center py-0.5 border border-gray-500 focus:border-blue-400 outline-none"
+                      >
+                        <option value="">—</option>
+                        <option value="hearts">♥</option>
+                        <option value="spades">♠</option>
+                        <option value="diamonds">♦</option>
+                        <option value="clubs">♣</option>
+                      </select>
+                    </td>
                       {game.players.map((p) => {
                         const d = drafts[p.id] ?? { bid: 0, tricks: 0 };
                         const pts = calculateScore(d.bid, d.tricks);
@@ -146,7 +170,7 @@ export default function Scoreboard() {
                             ✓
                           </button>
                           <button
-                            onClick={() => { setEditingHand(null); setDrafts({}); }}
+                            onClick={() => { setEditingHand(null); setDrafts({}); setDraftTrump(''); }}
                             className="text-xs px-2 py-1 rounded bg-gray-600 hover:bg-gray-500 font-medium transition"
                           >
                             ✗
@@ -163,7 +187,18 @@ export default function Scoreboard() {
                     className="border-b border-gray-700/50 cursor-pointer hover:bg-gray-700/30 transition"
                     onClick={() => startEditing(h)}
                   >
-                    <td className="py-0.5 px-1 text-gray-500 text-center">{h.cardsDealt}</td>
+                    <td className="py-0.5 px-1 text-gray-500 text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span>{h.cardsDealt}</span>
+                        {h.trumpSuit ? (
+                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded bg-gray-600 text-lg leading-none ${SUIT_ICONS[h.trumpSuit].color}`}>
+                            {SUIT_ICONS[h.trumpSuit].icon}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-600 text-lg leading-none text-gray-500">?</span>
+                        )}
+                      </div>
+                    </td>
                     {game.players.map((p) => {
                       const r = h.results.find((x) => x.playerId === p.id);
                       const total = runningTotals[i]?.[p.id] ?? 0;
@@ -192,6 +227,28 @@ export default function Scoreboard() {
           </table>
         </div>
       )}
+
+      {/* Trump suit tally */}
+      {completedHands.length > 0 && (() => {
+        const counts: Record<TrumpSuit, number> = { hearts: 0, spades: 0, diamonds: 0, clubs: 0 };
+        for (const h of completedHands) {
+          if (h.trumpSuit) counts[h.trumpSuit]++;
+        }
+        const hasTrump = Object.values(counts).some((c) => c > 0);
+        if (!hasTrump) return null;
+        return (
+          <div className="flex justify-center gap-4">
+            {(['hearts', 'spades', 'diamonds', 'clubs'] as TrumpSuit[]).map((suit) => (
+              <span key={suit} className="flex items-center gap-1">
+                <span className={`inline-flex items-center justify-center w-7 h-7 rounded bg-gray-600 text-lg leading-none ${SUIT_ICONS[suit].color}`}>
+                  {SUIT_ICONS[suit].icon}
+                </span>
+                <span className="text-gray-400 text-sm">{counts[suit]}</span>
+              </span>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }

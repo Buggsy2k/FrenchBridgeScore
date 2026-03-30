@@ -71,7 +71,7 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
           <span className="text-gray-500"> / {hand.cardsDealt}</span>
           {!tricksMatch && allFilled && (
             <span className="text-red-400 text-sm ml-2">
-              — {Math.abs(totalTricks - hand.cardsDealt)} {totalTricks > hand.cardsDealt ? 'over' : 'under'}
+              — {Math.abs(totalTricks - hand.cardsDealt)} {totalTricks > hand.cardsDealt ? 'over' : 'short'}
             </span>
           )}
         </div>

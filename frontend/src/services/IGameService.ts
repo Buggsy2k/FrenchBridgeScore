@@ -1,4 +1,4 @@
-import type { GameConfig, GameState } from '../models/types';
+import type { GameConfig, GameState, TrumpSuit } from '../models/types';
 
 /**
  * Abstract interface for game data operations.
@@ -9,7 +9,7 @@ export interface IGameService {
   createGame(config: GameConfig): Promise<GameState>;
   getGame(id: string): Promise<GameState | null>;
   saveGame(game: GameState): Promise<void>;
-  submitBids(gameId: string, bids: { playerId: string; bid: number }[]): Promise<GameState>;
+  submitBids(gameId: string, bids: { playerId: string; bid: number }[], trumpSuit?: TrumpSuit): Promise<GameState>;
   submitResults(gameId: string, results: { playerId: string; tricksTaken: number }[]): Promise<GameState>;
   listGames(): Promise<{ id: string; createdAt: string; playerNames: string[] }[]>;
   deleteGame(id: string): Promise<void>;

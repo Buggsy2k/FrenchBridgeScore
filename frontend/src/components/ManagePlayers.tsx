@@ -9,9 +9,10 @@ import {
 
 interface Props {
   onBack: () => void;
+  embedded?: boolean;
 }
 
-export default function ManagePlayers({ onBack }: Props) {
+export default function ManagePlayers({ onBack, embedded }: Props) {
   const [players, setPlayers] = useState(() => getCachedPlayers());
   const [fullName, setFullName] = useState('');
   const [alias, setAlias] = useState('');
@@ -61,9 +62,8 @@ export default function ManagePlayers({ onBack }: Props) {
     refresh();
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-lg space-y-6">
+  const content = (
+    <div className={embedded ? 'p-5 sm:p-6 space-y-6' : 'bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-lg space-y-6'}>
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
@@ -185,6 +185,13 @@ export default function ManagePlayers({ onBack }: Props) {
           )}
         </div>
       </div>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      {content}
     </div>
   );
 }

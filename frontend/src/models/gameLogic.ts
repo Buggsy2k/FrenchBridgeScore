@@ -1,4 +1,4 @@
-import type { GameConfig, GameState, Hand, HandResult, Player, PlayerScore } from './types';
+import type { GameConfig, GameState, Hand, HandResult, Player, PlayerScore, TrumpSuit } from './types';
 
 /**
  * Calculate the maximum number of hands (peak) for a given player count.
@@ -116,7 +116,8 @@ export function renamePlayers(game: GameState, names: Record<string, string>): G
 export function editHand(
   game: GameState,
   handNumber: number,
-  edits: { playerId: string; bid: number; tricksTaken: number }[]
+  edits: { playerId: string; bid: number; tricksTaken: number }[],
+  trumpSuit?: TrumpSuit
 ): GameState {
   const hands = [...game.hands];
   const idx = hands.findIndex((h) => h.handNumber === handNumber);
@@ -129,6 +130,7 @@ export function editHand(
     tricksTaken: e.tricksTaken,
     score: calculateScore(e.bid, e.tricksTaken),
   }));
+  hand.trumpSuit = trumpSuit;
   hands[idx] = hand;
   return { ...game, hands };
 }
@@ -136,10 +138,11 @@ export function editHand(
 /**
  * Submit bids for the current hand. Returns updated game state.
  */
-export function submitBids(game: GameState, bids: { playerId: string; bid: number }[]): GameState {
+export function submitBids(game: GameState, bids: { playerId: string; bid: number }[], trumpSuit?: TrumpSuit): GameState {
   const hands = [...game.hands];
   const hand = { ...hands[game.currentHandIndex] };
   hand.bids = bids.map((b) => ({ playerId: b.playerId, bid: b.bid }));
+  if (trumpSuit) hand.trumpSuit = trumpSuit;
   hand.phase = 'results';
   hands[game.currentHandIndex] = hand;
   return { ...game, hands };
@@ -177,4 +180,110 @@ export function submitResults(
     currentHandIndex: isFinished ? game.currentHandIndex : nextIndex,
     phase: isFinished ? 'finished' : 'playing',
   };
+}
+
+/**
+ * Update the trump suit for a specific hand.
+ */
+export function setHandTrumpSuit(game: GameState, handIndex: number, trumpSuit?: TrumpSuit): GameState {
+  const hands = [...game.hands];
+  hands[handIndex] = { ...hands[handIndex], trumpSuit };
+  return { ...game, hands };
+}
+
+/**
+ * Replace a player in the game. The new player inherits all score history.
+ */
+export function replacePlayer(
+  game: GameState,
+  oldPlayerId: string,
+  newPlayer: { id: string; name: string; fullName: string }
+): GameState {
+  const players = game.players.map((p) =>
+    p.id === oldPlayerId
+      ? { ...p, id: newPlayer.id, name: newPlayer.name, fullName: newPlayer.fullName }
+      : p
+  );
+
+  const hands = game.hands.map((h) => ({
+    ...h,
+    dealerPlayerId: h.dealerPlayerId === oldPlayerId ? newPlayer.id : h.dealerPlayerId,
+    bids: h.bids.map((b) =>
+      b.playerId === oldPlayerId ? { ...b, playerId: newPlayer.id } : b
+    ),
+    results: h.results.map((r) =>
+      r.playerId === oldPlayerId ? { ...r, playerId: newPlayer.id } : r
+    ),
+  }));
+
+  return { ...game, players, hands };
+}
+
+/**
+ * Add a new player to the game. They get zero scores for all completed hands.
+ */
+export function addPlayerToGame(
+  game: GameState,
+  newPlayer: { id: string; name: string; fullName: string }
+): GameState {
+  const order = game.players.length;
+  const players = [...game.players, { ...newPlayer, order }];
+
+  const hands = game.hands.map((h) => {
+    if (h.phase === 'complete') {
+      return {
+        ...h,
+        bids: [...h.bids, { playerId: newPlayer.id, bid: 0 }],
+        results: [
+          ...h.results,
+          { playerId: newPlayer.id, bid: 0, tricksTaken: 0, score: 0 },
+        ],
+      };
+    }
+    if (h.phase === 'results') {
+      return {
+        ...h,
+        bids: [...h.bids, { playerId: newPlayer.id, bid: 0 }],
+      };
+    }
+    return h;
+  });
+
+  return { ...game, players, hands };
+}
+
+/**
+ * Remove a player from the game and all their score data.
+ */
+export function removePlayerFromGame(game: GameState, playerId: string): GameState {
+  const players = game.players
+    .filter((p) => p.id !== playerId)
+    .map((p, i) => ({ ...p, order: i }));
+
+  const hands = game.hands.map((h) => ({
+    ...h,
+    dealerPlayerId:
+      h.dealerPlayerId === playerId
+        ? players[0]?.id ?? ''
+        : h.dealerPlayerId,
+    bids: h.bids.filter((b) => b.playerId !== playerId),
+    results: h.results.filter((r) => r.playerId !== playerId),
+  }));
+
+  return { ...game, players, hands };
+}
+
+/**
+ * Reorder players. Accepts an array of player IDs in the new order.
+ */
+export function reorderPlayers(game: GameState, playerIds: string[]): GameState {
+  const playerMap = new Map(game.players.map((p) => [p.id, p]));
+  const players = playerIds
+    .map((id, i) => {
+      const p = playerMap.get(id);
+      return p ? { ...p, order: i } : null;
+    })
+    .filter((p): p is Player => p !== null);
+
+  return { ...game, players };
 }

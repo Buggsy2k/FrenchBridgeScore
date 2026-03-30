@@ -1,4 +1,4 @@
-import type { GameConfig, GameState } from '../models/types';
+import type { GameConfig, GameState, TrumpSuit } from '../models/types';
 import type { IGameService } from './IGameService';
 import { createGame, submitBids, submitResults } from '../models/gameLogic';
 
@@ -40,12 +40,13 @@ export class LocalStorageGameService implements IGameService {
 
   async submitBids(
     gameId: string,
-    bids: { playerId: string; bid: number }[]
+    bids: { playerId: string; bid: number }[],
+    trumpSuit?: TrumpSuit
   ): Promise<GameState> {
     const all = loadAll();
     const game = all[gameId];
     if (!game) throw new Error(`Game ${gameId} not found`);
-    const updated = submitBids(game, bids);
+    const updated = submitBids(game, bids, trumpSuit);
     all[gameId] = updated;
     saveAll(all);
     return updated;

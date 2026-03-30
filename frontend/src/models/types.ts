@@ -26,10 +26,13 @@ export interface HandResult {
   score: number;
 }
 
+export type TrumpSuit = 'hearts' | 'spades' | 'diamonds' | 'clubs';
+
 export interface Hand {
   handNumber: number; // 1-based index in the sequence
   cardsDealt: number;
   dealerPlayerId: string;
+  trumpSuit?: TrumpSuit;
   phase: 'bidding' | 'results' | 'complete';
   bids: HandBid[];
   results: HandResult[];

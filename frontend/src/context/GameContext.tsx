@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
-import type { GameConfig, GameState } from '../models/types';
+import type { GameConfig, GameState, TrumpSuit } from '../models/types';
 import type { PlayerScore } from '../models/types';
-import { computeScoreboard, renamePlayers, editHand } from '../models/gameLogic';
+import { computeScoreboard, renamePlayers, editHand, replacePlayer, addPlayerToGame, removePlayerFromGame, reorderPlayers, setHandTrumpSuit } from '../models/gameLogic';
 import { LocalStorageGameService } from '../services/LocalStorageGameService';
 import type { IGameService } from '../services/IGameService';
 
@@ -19,10 +19,15 @@ interface GameContextValue {
   lastConfig: LastGameConfig | null;
   savedGame: GameState | null;
   startGame: (config: GameConfig) => Promise<void>;
-  submitBids: (bids: { playerId: string; bid: number }[]) => Promise<void>;
+  submitBids: (bids: { playerId: string; bid: number }[], trumpSuit?: TrumpSuit) => Promise<void>;
   submitResults: (results: { playerId: string; tricksTaken: number }[]) => Promise<void>;
   updatePlayerNames: (names: Record<string, string>) => Promise<void>;
-  editCompletedHand: (handNumber: number, edits: { playerId: string; bid: number; tricksTaken: number }[]) => Promise<void>;
+  editCompletedHand: (handNumber: number, edits: { playerId: string; bid: number; tricksTaken: number }[], trumpSuit?: TrumpSuit) => Promise<void>;
+  replaceGamePlayer: (oldPlayerId: string, newPlayer: { id: string; name: string; fullName: string }) => Promise<void>;
+  addGamePlayer: (newPlayer: { id: string; name: string; fullName: string }) => Promise<void>;
+  removeGamePlayer: (playerId: string) => Promise<void>;
+  reorderGamePlayers: (playerIds: string[]) => Promise<void>;
+  setCurrentTrumpSuit: (trumpSuit?: TrumpSuit) => Promise<void>;
   resumeGame: () => void;
   dismissSavedGame: () => void;
   resetGame: () => void;
@@ -61,9 +66,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleSubmitBids = useCallback(
-    async (bids: { playerId: string; bid: number }[]) => {
+    async (bids: { playerId: string; bid: number }[], trumpSuit?: TrumpSuit) => {
       if (!game) return;
-      const updated = await service.submitBids(game.id, bids);
+      const updated = await service.submitBids(game.id, bids, trumpSuit);
       setGame(updated);
     },
     [game]
@@ -89,9 +94,59 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const editCompletedHand = useCallback(
-    async (handNumber: number, edits: { playerId: string; bid: number; tricksTaken: number }[]) => {
+    async (handNumber: number, edits: { playerId: string; bid: number; tricksTaken: number }[], trumpSuit?: TrumpSuit) => {
       if (!game) return;
-      const updated = editHand(game, handNumber, edits);
+      const updated = editHand(game, handNumber, edits, trumpSuit);
+      await service.saveGame(updated);
+      setGame(updated);
+    },
+    [game]
+  );
+
+  const replaceGamePlayer = useCallback(
+    async (oldPlayerId: string, newPlayer: { id: string; name: string; fullName: string }) => {
+      if (!game) return;
+      const updated = replacePlayer(game, oldPlayerId, newPlayer);
+      await service.saveGame(updated);
+      setGame(updated);
+    },
+    [game]
+  );
+
+  const addGamePlayer = useCallback(
+    async (newPlayer: { id: string; name: string; fullName: string }) => {
+      if (!game) return;
+      const updated = addPlayerToGame(game, newPlayer);
+      await service.saveGame(updated);
+      setGame(updated);
+    },
+    [game]
+  );
+
+  const removeGamePlayer = useCallback(
+    async (playerId: string) => {
+      if (!game) return;
+      const updated = removePlayerFromGame(game, playerId);
+      await service.saveGame(updated);
+      setGame(updated);
+    },
+    [game]
+  );
+
+  const reorderGamePlayers = useCallback(
+    async (playerIds: string[]) => {
+      if (!game) return;
+      const updated = reorderPlayers(game, playerIds);
+      await service.saveGame(updated);
+      setGame(updated);
+    },
+    [game]
+  );
+
+  const setCurrentTrumpSuit = useCallback(
+    async (trumpSuit?: TrumpSuit) => {
+      if (!game) return;
+      const updated = setHandTrumpSuit(game, game.currentHandIndex, trumpSuit);
       await service.saveGame(updated);
       setGame(updated);
     },
@@ -135,11 +190,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
       submitResults: handleSubmitResults,
       updatePlayerNames,
       editCompletedHand,
+      replaceGamePlayer,
+      addGamePlayer,
+      removeGamePlayer,
+      reorderGamePlayers,
+      setCurrentTrumpSuit,
       resumeGame,
       dismissSavedGame,
       resetGame,
     }),
-    [game, scoreboard, lastConfig, savedGame, startGame, handleSubmitBids, handleSubmitResults, updatePlayerNames, editCompletedHand, resumeGame, dismissSavedGame, resetGame]
+    [game, scoreboard, lastConfig, savedGame, startGame, handleSubmitBids, handleSubmitResults, updatePlayerNames, editCompletedHand, replaceGamePlayer, addGamePlayer, removeGamePlayer, reorderGamePlayers, setCurrentTrumpSuit, resumeGame, dismissSavedGame, resetGame]
   );
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

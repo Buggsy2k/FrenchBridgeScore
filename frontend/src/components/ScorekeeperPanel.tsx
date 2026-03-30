@@ -1,113 +1,126 @@
 import { useState } from 'react';
 import { useGame } from '../context/GameContext';
+import type { TrumpSuit } from '../models/types';
 import BiddingForm from './BiddingForm';
 import ResultsForm from './ResultsForm';
 import Scoreboard from './Scoreboard';
+import EditPlayersDialog from './EditPlayersDialog';
+
+const SUITS: { value: TrumpSuit; icon: string; color: string }[] = [
+  { value: 'hearts', icon: '♥', color: 'text-red-500' },
+  { value: 'spades', icon: '♠', color: 'text-gray-900' },
+  { value: 'diamonds', icon: '♦', color: 'text-red-500' },
+  { value: 'clubs', icon: '♣', color: 'text-gray-900' },
+];
 
 export default function ScorekeeperPanel() {
-  const { game, submitBids, submitResults, updatePlayerNames } = useGame();
-  const [editingNames, setEditingNames] = useState(false);
-  const [draftNames, setDraftNames] = useState<Record<string, string>>({});
+  const { game, submitBids, submitResults, setCurrentTrumpSuit } = useGame();
+  const [showEditPlayers, setShowEditPlayers] = useState(false);
+  const [showSuitPicker, setShowSuitPicker] = useState(false);
   const [totalBid, setTotalBid] = useState<number | null>(null);
   if (!game) return null;
 
   const currentHand = game.hands[game.currentHandIndex];
   const totalHands = game.hands.length;
-  const handsRemaining = totalHands - game.currentHandIndex - (currentHand.phase === 'complete' ? 1 : 0);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row gap-4 p-3 sm:p-4 lg:justify-center">
       {/* Left panel: current hand input */}
       <div className="flex-1 max-w-lg mx-auto w-full lg:flex-initial">
         <div className="bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 relative">
-          {/* Edit names icon */}
-          {editingNames ? (
-            <div className="space-y-2">
-              <div className="text-sm text-gray-400 font-medium">Edit Names</div>
-              {game.players.map((p) => (
-                <input
-                  key={p.id}
-                  type="text"
-                  value={draftNames[p.id] ?? p.name}
-                  onChange={(e) =>
-                    setDraftNames((prev) => ({ ...prev, [p.id]: e.target.value }))
-                  }
-                  className="w-full px-3 py-1.5 rounded-lg bg-gray-700 text-white text-center text-sm"
-                />
-              ))}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setEditingNames(false); setDraftNames({}); }}
-                  className="flex-1 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-medium transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={async () => {
-                    const changes: Record<string, string> = {};
-                    for (const [id, name] of Object.entries(draftNames)) {
-                      if (name.trim() && name !== game.players.find((p) => p.id === id)?.name) {
-                        changes[id] = name.trim();
-                      }
-                    }
-                    if (Object.keys(changes).length > 0) {
-                      await updatePlayerNames(changes);
-                    }
-                    setEditingNames(false);
-                    setDraftNames({});
-                  }}
-                  className="flex-1 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-medium transition"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setEditingNames(true)}
-              className="absolute top-3 right-3 text-gray-600 hover:text-gray-300 transition"
-              title="Edit player names"
-            >
-              ✏️
-            </button>
-          )}
+          <button
+            onClick={() => setShowEditPlayers(true)}
+            className="absolute top-3 right-3 text-gray-600 hover:text-gray-300 transition"
+            title="Edit players"
+          >
+            ✏️
+          </button>
 
           {/* Hand header */}
           <div className="text-center">
             <h2 className="text-2xl sm:text-3xl font-bold">
               Hand {currentHand.handNumber}{' '}
-              <span className="text-gray-400 text-lg font-normal">of {totalHands} ({handsRemaining} remain)</span>
+              <span className="text-gray-400 text-lg font-normal">of {totalHands}</span>
             </h2>
             <div className="flex items-center justify-center gap-4 mt-1">
               <span className="text-lg text-blue-400 font-semibold">
                 {currentHand.cardsDealt} card{currentHand.cardsDealt !== 1 ? 's' : ''}
               </span>
               {currentHand.phase === 'bidding' && totalBid !== null && (
-                <span className={`text-lg font-semibold ${
-                  totalBid === currentHand.cardsDealt ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {totalBid === currentHand.cardsDealt
-                    ? 'Even'
-                    : totalBid > currentHand.cardsDealt
-                      ? `${totalBid - currentHand.cardsDealt} over`
-                      : `${currentHand.cardsDealt - totalBid} under`}
-                </span>
+                <>
+                  <span className="text-lg text-white">—</span>
+                  <span className={`text-lg font-semibold ${
+                    totalBid === currentHand.cardsDealt ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {totalBid === currentHand.cardsDealt
+                      ? 'Even Bid'
+                      : totalBid > currentHand.cardsDealt
+                        ? `${totalBid - currentHand.cardsDealt} Overbid`
+                        : `${currentHand.cardsDealt - totalBid} Underbid`}
+                  </span>
+                </>
               )}
               {currentHand.phase === 'results' && (() => {
                 const tb = currentHand.bids.reduce((s, b) => s + b.bid, 0);
                 return (
-                  <span className={`text-lg font-semibold ${
-                    tb === currentHand.cardsDealt ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {tb === currentHand.cardsDealt
-                      ? 'Even'
-                      : tb > currentHand.cardsDealt
-                        ? `${tb - currentHand.cardsDealt} over`
-                        : `${currentHand.cardsDealt - tb} under`}
-                  </span>
+                  <>
+                    <span className="text-lg text-white">—</span>
+                    <span className={`text-lg font-semibold ${
+                      tb === currentHand.cardsDealt ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {tb === currentHand.cardsDealt
+                        ? 'Even Bid'
+                        : tb > currentHand.cardsDealt
+                          ? `${tb - currentHand.cardsDealt} Overbid`
+                          : `${currentHand.cardsDealt - tb} Underbid`}
+                    </span>
+                  </>
                 );
               })()}
             </div>
+
+            {/* Trump suit display/picker (results phase) */}
+            {currentHand.phase === 'results' && (
+              <div className="flex items-center justify-center mt-2">
+                {showSuitPicker ? (
+                  <div className="flex items-center gap-3">
+                    {SUITS.map((s) => (
+                      <button
+                        key={s.value}
+                        type="button"
+                        tabIndex={-1}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setCurrentTrumpSuit(s.value);
+                          setShowSuitPicker(false);
+                        }}
+                        className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition ${
+                          currentHand.trumpSuit === s.value
+                            ? 'bg-blue-600 ring-2 ring-blue-400'
+                            : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                      >
+                        <span className={s.color}>{s.icon}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowSuitPicker(true)}
+                    className="w-10 h-10 rounded-lg text-xl flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition"
+                  >
+                    {currentHand.trumpSuit ? (
+                      <span className={SUITS.find((s) => s.value === currentHand.trumpSuit)!.color}>
+                        {SUITS.find((s) => s.value === currentHand.trumpSuit)!.icon}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">?</span>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Phase-specific form */}
@@ -133,6 +146,10 @@ export default function ScorekeeperPanel() {
       <div className="lg:w-96 w-full max-w-lg mx-auto lg:mx-0 lg:flex-initial">
         <Scoreboard />
       </div>
+
+      {showEditPlayers && (
+        <EditPlayersDialog onClose={() => setShowEditPlayers(false)} />
+      )}
     </div>
   );
 }
