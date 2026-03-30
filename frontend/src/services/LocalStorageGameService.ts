@@ -3,6 +3,7 @@ import type { IGameService } from './IGameService';
 import { createGame, submitBids, submitResults } from '../models/gameLogic';
 
 const STORAGE_KEY = 'frenchbridge_games';
+const ACTIVE_GAME_KEY = 'frenchbridge_active_game';
 
 function loadAll(): Record<string, GameState> {
   try {
@@ -76,5 +77,17 @@ export class LocalStorageGameService implements IGameService {
     const all = loadAll();
     delete all[id];
     saveAll(all);
+  }
+
+  getActiveGameId(): string | null {
+    return localStorage.getItem(ACTIVE_GAME_KEY);
+  }
+
+  setActiveGameId(id: string): void {
+    localStorage.setItem(ACTIVE_GAME_KEY, id);
+  }
+
+  clearActiveGameId(): void {
+    localStorage.removeItem(ACTIVE_GAME_KEY);
   }
 }

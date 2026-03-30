@@ -109,14 +109,14 @@ export default function PlayerSelect({
           onFocus={() => setShowDropdown(true)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className="flex-1 bg-gray-700 rounded-lg px-4 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 min-w-0 bg-gray-700 rounded-lg px-3 py-1.5 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <input
           type="text"
           placeholder="Alias"
           value={alias}
           onChange={(e) => onSelect(index, fullName, e.target.value)}
-          className="w-24 bg-gray-700 rounded-lg px-3 py-2 text-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-20 sm:w-24 shrink-0 bg-gray-700 rounded-lg px-2 py-1.5 text-base sm:text-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
       {showDropdown && filtered.length > 0 && (
