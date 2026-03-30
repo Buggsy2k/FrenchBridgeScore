@@ -14,9 +14,11 @@ interface BiddingFormProps {
   players: Player[];
   onSubmit: (bids: { playerId: string; bid: number }[], trumpSuit?: TrumpSuit) => void;
   onTotalBidChange?: (total: number) => void;
+  skipReview?: boolean;
+  onSkipReviewChange?: (skip: boolean) => void;
 }
 
-export default function BiddingForm({ hand, players, onSubmit, onTotalBidChange }: BiddingFormProps) {
+export default function BiddingForm({ hand, players, onSubmit, onTotalBidChange, skipReview, onSkipReviewChange }: BiddingFormProps) {
   const [values, setValues] = useState<Record<string, number | null>>(
     () => Object.fromEntries(players.map((p) => [p.id, null]))
   );
@@ -91,6 +93,15 @@ export default function BiddingForm({ hand, players, onSubmit, onTotalBidChange 
             Start Hand
           </button>
         </div>
+        <label className="flex items-center justify-center gap-2 py-1 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={skipReview ?? false}
+            onChange={(e) => onSkipReviewChange?.(e.target.checked)}
+            className="w-4 h-4 rounded accent-blue-500"
+          />
+          <span className="text-sm text-gray-500">Skip this screen (this game only)</span>
+        </label>
       </div>
     );
   }
@@ -140,14 +151,34 @@ export default function BiddingForm({ hand, players, onSubmit, onTotalBidChange 
         <span className="text-gray-500"> / {hand.cardsDealt}</span>
       </div>
 
-      <button
-        ref={lockBtnRef}
-        onClick={() => allFilled && setShowSummary(true)}
-        disabled={!allFilled}
-        className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-lg font-bold transition"
-      >
-        Review Tricks
-      </button>
+      {skipReview ? (
+        <button
+          ref={lockBtnRef}
+          onClick={handleLock}
+          disabled={!allFilled}
+          className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-lg font-bold transition"
+        >
+          Start Hand
+        </button>
+      ) : (
+        <div className="flex gap-3">
+          <button
+            ref={lockBtnRef}
+            onClick={() => allFilled && setShowSummary(true)}
+            disabled={!allFilled}
+            className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-lg font-bold transition"
+          >
+            Review Tricks
+          </button>
+          <button
+            onClick={handleLock}
+            disabled={!allFilled}
+            className="flex-1 py-3 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-lg font-bold transition"
+          >
+            Start Hand
+          </button>
+        </div>
+      )}
     </div>
   );
 }

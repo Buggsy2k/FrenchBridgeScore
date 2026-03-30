@@ -19,6 +19,8 @@ export default function ScorekeeperPanel() {
   const [showSuitPicker, setShowSuitPicker] = useState(false);
   const [totalBid, setTotalBid] = useState<number | null>(null);
   const [confirmEndGame, setConfirmEndGame] = useState(false);
+  const [pendingResults, setPendingResults] = useState<{ playerId: string; tricksTaken: number }[] | null>(null);
+  const [skipReview, setSkipReview] = useState(false);
 
   // Re-focus the first digit input (e.g. after suit picker interaction)
   const refocusFirstInput = useCallback(() => {
@@ -27,6 +29,30 @@ export default function ScorekeeperPanel() {
       el?.focus();
     });
   }, []);
+
+  // Intercept results submission to check for missing trump suit
+  const handleSubmitResults = useCallback(
+    async (results: { playerId: string; tricksTaken: number }[]) => {
+      if (!game) return;
+      const hand = game.hands[game.currentHandIndex];
+      if (!hand.trumpSuit) {
+        setPendingResults(results);
+        return;
+      }
+      await submitResults(results);
+    },
+    [game, submitResults]
+  );
+
+  const confirmSubmitWithSuit = useCallback(
+    async (suit?: TrumpSuit) => {
+      if (!pendingResults) return;
+      if (suit) await setCurrentTrumpSuit(suit);
+      await submitResults(pendingResults);
+      setPendingResults(null);
+    },
+    [pendingResults, setCurrentTrumpSuit, submitResults]
+  );
 
   if (!game) return null;
 
@@ -143,25 +169,25 @@ export default function ScorekeeperPanel() {
               players={game.players}
               onSubmit={submitBids}
               onTotalBidChange={setTotalBid}
+              skipReview={skipReview}
+              onSkipReviewChange={setSkipReview}
             />
           )}
           {currentHand.phase === 'results' && (
             <ResultsForm
               hand={currentHand}
               players={game.players}
-              onSubmit={submitResults}
+              onSubmit={handleSubmitResults}
             />
           )}
         </div>
       </div>
 
       {/* Right panel: persistent scoreboard */}
-      <div className="lg:w-96 w-full max-w-lg mx-auto lg:mx-0 lg:flex-initial">
+      <div className="lg:w-96 w-full max-w-lg mx-auto lg:mx-0 lg:flex-initial space-y-4">
         <Scoreboard />
-      </div>
 
-      {/* End Game button */}
-      <div className="w-full max-w-lg mx-auto lg:max-w-none lg:w-96">
+        {/* End Game button */}
         {confirmEndGame ? (
           <div className="bg-red-900/30 border border-red-600/50 rounded-xl p-4 space-y-3">
             <p className="text-center text-red-300 font-semibold">End the game now?</p>
@@ -193,6 +219,41 @@ export default function ScorekeeperPanel() {
 
       {showEditPlayers && (
         <EditPlayersDialog onClose={() => setShowEditPlayers(false)} />
+      )}
+
+      {/* Trump suit missing dialog */}
+      {pendingResults && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="text-xl font-bold text-center">No Trump Suit</h3>
+            <p className="text-gray-400 text-center text-sm">Select the trump suit, or continue without one.</p>
+            <div className="flex justify-center gap-3">
+              {SUITS.map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => confirmSubmitWithSuit(s.value)}
+                  className="w-14 h-14 rounded-lg text-2xl flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition"
+                >
+                  <span className={s.color}>{s.icon}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingResults(null)}
+                className="flex-1 py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => confirmSubmitWithSuit()}
+                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition"
+              >
+                Skip Suit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
