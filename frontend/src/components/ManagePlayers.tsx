@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import type { CachedPlayer } from '../models/types';
 import {
   getCachedPlayers,
   upsertCachedPlayers,
   updateCachedPlayer,
   deleteCachedPlayer,
+  reorderCachedPlayer,
 } from '../services/PlayerCacheService';
 
 interface Props {
@@ -19,10 +20,30 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFullName, setEditFullName] = useState('');
   const [editAlias, setEditAlias] = useState('');
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
   function refresh() {
     setPlayers(getCachedPlayers());
+  }
+
+  const startLongPress = useCallback((id: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setReorderingId((prev) => (prev === id ? null : id));
+    }, 400);
+  }, []);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  function handleReorder(id: string, direction: 'up' | 'down') {
+    reorderCachedPlayer(id, direction);
+    refresh();
   }
 
   function handleAdd() {
@@ -153,8 +174,40 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
                     </div>
                   </li>
                 ) : (
-                  <li key={p.id} className="flex items-center justify-between bg-gray-700/50 rounded-lg px-3 py-2">
-                    <div>
+                  <li
+                    key={p.id}
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 select-none ${
+                      reorderingId === p.id ? 'bg-blue-900/40 ring-1 ring-blue-500' : 'bg-gray-700/50'
+                    }`}
+                    onTouchStart={() => startLongPress(p.id)}
+                    onTouchEnd={cancelLongPress}
+                    onTouchMove={cancelLongPress}
+                    onMouseDown={() => startLongPress(p.id)}
+                    onMouseUp={cancelLongPress}
+                    onMouseLeave={cancelLongPress}
+                    onContextMenu={(e) => e.preventDefault()}
+                  >
+                    {reorderingId === p.id && (
+                      <div className="flex flex-col gap-0.5 mr-2">
+                        <button
+                          onClick={() => handleReorder(p.id, 'up')}
+                          disabled={players.indexOf(p) === 0}
+                          className="text-gray-300 hover:text-white disabled:opacity-20 text-xs leading-none px-1 py-0.5"
+                          aria-label="Move up"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          onClick={() => handleReorder(p.id, 'down')}
+                          disabled={players.indexOf(p) === players.length - 1}
+                          className="text-gray-300 hover:text-white disabled:opacity-20 text-xs leading-none px-1 py-0.5"
+                          aria-label="Move down"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
                       <span className="font-medium">{p.fullName}</span>
                       {p.alias !== p.fullName && (
                         <span className="text-gray-400 ml-2">({p.alias})</span>
