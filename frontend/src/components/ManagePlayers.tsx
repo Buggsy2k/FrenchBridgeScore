@@ -133,9 +133,12 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
 
         {/* Player list */}
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-2">
-            Players ({players.length})
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-400">
+              Players ({players.length})
+            </label>
+            <span className="text-xs text-gray-500 italic">Long press to reorder</span>
+          </div>
           {players.length > 0 ? (
             <ul className="space-y-2 max-h-80 overflow-y-auto">
               {players.map((p) =>

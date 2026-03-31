@@ -139,15 +139,6 @@ export default function GameSetup({ onManagePlayers, onHistory, visible = true }
     setCustomMaxHands(null);
   }
 
-  function handleReplacePlayer(index: number) {
-    setPlayers((prev) => {
-      const next = [...prev];
-      next[index] = { cachedId: null, fullName: '', alias: '' };
-      return next;
-    });
-    setTimeout(() => nameRefs.current[index]?.focus(), 50);
-  }
-
   const usedFullNames = players.map((p) => p.fullName).filter((n) => n.trim());
   const allNamed = players.every((p) => p.fullName.trim().length > 0 && p.alias.trim().length > 0);
   const handsValid = maxHands >= 1 && maxHands <= maxAllowed;
@@ -264,15 +255,6 @@ export default function GameSetup({ onManagePlayers, onHistory, visible = true }
                 />
               </div>
               <button
-                onClick={() => handleReplacePlayer(i)}
-                disabled={!p.fullName.trim()}
-                className="text-gray-400 hover:text-blue-400 disabled:opacity-20 p-1 text-sm"
-                title="Replace player"
-                aria-label="Replace player"
-              >
-                ⟳
-              </button>
-              <button
                 onClick={() => handleRemovePlayer(i)}
                 disabled={playerCount <= 3}
                 className="text-gray-400 hover:text-red-400 disabled:opacity-20 p-1 text-sm"
@@ -347,7 +329,7 @@ export default function GameSetup({ onManagePlayers, onHistory, visible = true }
             onClick={onHistory}
             className="text-xs px-2.5 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium transition whitespace-nowrap"
           >
-            Game History
+            📋 Game History
           </button>
         </div>
       </div>

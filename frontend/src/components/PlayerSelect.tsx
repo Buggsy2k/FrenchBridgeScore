@@ -101,16 +101,18 @@ export default function PlayerSelect({
       </div>
       {showDropdown && (
         <div className="absolute z-10 left-0 right-0 mt-1 bg-gray-700 rounded-lg shadow-lg overflow-hidden">
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search players…"
-            value={query}
-            onChange={(e) => { setQuery(e.target.value); setHighlightIdx(-1); }}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            className="w-full bg-gray-600 px-3 py-2 text-sm focus:outline-none"
-          />
+          {available.length > 20 && (
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Search players…"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setHighlightIdx(-1); }}
+              onBlur={handleBlur}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-gray-600 px-3 py-2 text-sm focus:outline-none"
+            />
+          )}
           {filtered.length > 0 ? (
             <ul className="max-h-40 overflow-y-auto">
               {filtered.map((p, i) => (
