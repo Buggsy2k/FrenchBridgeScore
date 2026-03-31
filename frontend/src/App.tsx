@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import { useGame } from './context/GameContext';
 import GameSetup from './components/GameSetup';
 import ManagePlayers from './components/ManagePlayers';
@@ -47,12 +48,29 @@ export default function App() {
   const { game, savedGame } = useGame();
   const [page, setPage] = useState<'setup' | 'manage' | 'report'>('setup');
 
+  const goBack = useCallback(() => setPage('setup'), []);
+
+  useEffect(() => {
+    const listener = CapApp.addListener('backButton', () => {
+      if (page !== 'setup') {
+        goBack();
+      }
+    });
+    return () => { listener.then((h) => h.remove()); };
+  }, [page, goBack]);
+
   if (!game && savedGame) return <RecoveryPrompt />;
 
   if (!game) {
-    if (page === 'manage') return <ManagePlayers onBack={() => setPage('setup')} />;
-    if (page === 'report') return <GameReport onBack={() => setPage('setup')} />;
-    return <GameSetup onManagePlayers={() => setPage('manage')} onHistory={() => setPage('report')} />;
+    return (
+      <>
+        <div className={page !== 'setup' ? 'hidden' : ''}>
+          <GameSetup onManagePlayers={() => setPage('manage')} onHistory={() => setPage('report')} visible={page === 'setup'} />
+        </div>
+        {page === 'manage' && <ManagePlayers onBack={() => setPage('setup')} />}
+        {page === 'report' && <GameReport onBack={() => setPage('setup')} />}
+      </>
+    );
   }
   if (game.phase === 'finished') return <GameOver />;
   return <ScorekeeperPanel />;

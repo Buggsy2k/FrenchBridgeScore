@@ -13,9 +13,10 @@ interface PlayerEntry {
 interface Props {
   onManagePlayers: () => void;
   onHistory: () => void;
+  visible?: boolean;
 }
 
-export default function GameSetup({ onManagePlayers, onHistory }: Props) {
+export default function GameSetup({ onManagePlayers, onHistory, visible = true }: Props) {
   const { startGame, lastConfig } = useGame();
 
   const [cachedPlayers, setCachedPlayers] = useState(() => getCachedPlayers());
@@ -36,10 +37,50 @@ export default function GameSetup({ onManagePlayers, onHistory }: Props) {
   const [customMaxHands, setCustomMaxHands] = useState<number | null>(lastConfig?.maxHands ?? null);
   const nameRefs = useRef<(HTMLInputElement | null)[]>([]);
   const startBtnRef = useRef<HTMLButtonElement | null>(null);
+  const playerCountRef = useRef(playerCount);
+  playerCountRef.current = playerCount;
+  const prevVisibleRef = useRef(true);
 
   useEffect(() => {
     nameRefs.current[0]?.focus();
   }, []);
+
+  // Sync with player cache when returning from Manage Players
+  useEffect(() => {
+    const wasHidden = !prevVisibleRef.current;
+    prevVisibleRef.current = visible;
+    if (!wasHidden || !visible) return;
+
+    const freshCache = getCachedPlayers();
+    setCachedPlayers(freshCache);
+
+    setPlayers((prev) => {
+      const count = playerCountRef.current;
+      const active = prev.slice(0, count);
+
+      const synced = active
+        .map((p) => {
+          if (!p.cachedId) return p;
+          const cached = freshCache.find((c) => c.id === p.cachedId);
+          if (!cached) return null;
+          return { ...p, fullName: cached.fullName, alias: cached.alias };
+        })
+        .filter((p): p is PlayerEntry => p !== null);
+
+      const newCount = Math.max(3, synced.length);
+      while (synced.length < newCount) {
+        synced.push({ cachedId: null, fullName: '', alias: '' });
+      }
+
+      if (newCount !== count) {
+        setPlayerCount(newCount);
+        setFirstDealerIndex((d) => (d >= newCount ? 0 : d));
+        setCustomMaxHands(null);
+      }
+
+      return synced;
+    });
+  }, [visible]);
 
   const maxAllowed = useMemo(() => calculateMaxHands(playerCount), [playerCount]);
   const maxHands = customMaxHands ?? Math.min(8, maxAllowed);
@@ -63,6 +104,48 @@ export default function GameSetup({ onManagePlayers, onHistory }: Props) {
       next[index] = { cachedId, fullName, alias };
       return next;
     });
+  }
+
+  function handleMovePlayer(fromIndex: number, direction: 'up' | 'down') {
+    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+    if (toIndex < 0 || toIndex >= playerCount) return;
+    setPlayers((prev) => {
+      const next = [...prev];
+      [next[fromIndex], next[toIndex]] = [next[toIndex], next[fromIndex]];
+      return next;
+    });
+    setFirstDealerIndex((prev) => {
+      if (prev === fromIndex) return toIndex;
+      if (prev === toIndex) return fromIndex;
+      return prev;
+    });
+  }
+
+  function handleRemovePlayer(index: number) {
+    if (playerCount <= 3) return;
+    const newCount = playerCount - 1;
+    setPlayerCount(newCount);
+    setPlayers((prev) => {
+      const next = [...prev];
+      next.splice(index, 1);
+      return next.slice(0, newCount);
+    });
+    setFirstDealerIndex((prev) => {
+      if (prev >= newCount) return 0;
+      if (prev === index) return 0;
+      if (prev > index) return prev - 1;
+      return prev;
+    });
+    setCustomMaxHands(null);
+  }
+
+  function handleReplacePlayer(index: number) {
+    setPlayers((prev) => {
+      const next = [...prev];
+      next[index] = { cachedId: null, fullName: '', alias: '' };
+      return next;
+    });
+    setTimeout(() => nameRefs.current[index]?.focus(), 50);
   }
 
   const usedFullNames = players.map((p) => p.fullName).filter((n) => n.trim());
@@ -130,26 +213,75 @@ export default function GameSetup({ onManagePlayers, onHistory }: Props) {
 
         {/* Player names */}
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-400">Players</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-400">Players</label>
+            <button
+              onClick={onManagePlayers}
+              className="text-xs px-2.5 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium transition whitespace-nowrap"
+            >
+              Manage Players ({cachedPlayers.length})
+            </button>
+          </div>
           {players.slice(0, playerCount).map((p, i) => (
-            <PlayerSelect
-              key={i}
-              index={i}
-              fullName={p.fullName}
-              alias={p.alias}
-              cachedId={p.cachedId}
-              cachedPlayers={cachedPlayers}
-              usedFullNames={usedFullNames}
-              onSelect={handlePlayerChange}
-              inputRef={(el) => { nameRefs.current[i] = el; }}
-              onEnter={() => {
-                if (i < playerCount - 1) {
-                  nameRefs.current[i + 1]?.focus();
-                } else {
-                  startBtnRef.current?.focus();
-                }
-              }}
-            />
+            <div key={i} className="flex items-center gap-1">
+              <div className="flex flex-col -space-y-0.5">
+                <button
+                  onClick={() => handleMovePlayer(i, 'up')}
+                  disabled={i === 0}
+                  className="text-gray-400 hover:text-white disabled:opacity-20 text-xs leading-none px-0.5 py-0.5"
+                  title="Move up"
+                  aria-label="Move up"
+                >
+                  ▲
+                </button>
+                <button
+                  onClick={() => handleMovePlayer(i, 'down')}
+                  disabled={i === playerCount - 1}
+                  className="text-gray-400 hover:text-white disabled:opacity-20 text-xs leading-none px-0.5 py-0.5"
+                  title="Move down"
+                  aria-label="Move down"
+                >
+                  ▼
+                </button>
+              </div>
+              <div className="flex-1 min-w-0">
+                <PlayerSelect
+                  index={i}
+                  fullName={p.fullName}
+                  alias={p.alias}
+                  cachedId={p.cachedId}
+                  cachedPlayers={cachedPlayers}
+                  usedFullNames={usedFullNames}
+                  onSelect={handlePlayerChange}
+                  inputRef={(el) => { nameRefs.current[i] = el; }}
+                  onEnter={() => {
+                    if (i < playerCount - 1) {
+                      nameRefs.current[i + 1]?.focus();
+                    } else {
+                      startBtnRef.current?.focus();
+                    }
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => handleReplacePlayer(i)}
+                disabled={!p.fullName.trim()}
+                className="text-gray-400 hover:text-blue-400 disabled:opacity-20 p-1 text-sm"
+                title="Replace player"
+                aria-label="Replace player"
+              >
+                ⟳
+              </button>
+              <button
+                onClick={() => handleRemovePlayer(i)}
+                disabled={playerCount <= 3}
+                className="text-gray-400 hover:text-red-400 disabled:opacity-20 p-1 text-sm"
+                title="Remove player"
+                aria-label="Remove player"
+              >
+                ✕
+              </button>
+            </div>
           ))}
         </div>
 
@@ -209,17 +341,11 @@ export default function GameSetup({ onManagePlayers, onHistory }: Props) {
           Start Game
         </button>
 
-        {/* Manage Players link */}
-        <div className="border-t border-gray-700 pt-3 flex items-center justify-between">
-          <button
-            onClick={onManagePlayers}
-            className="text-sm text-gray-400 hover:text-gray-200 transition"
-          >
-            Manage Players ({cachedPlayers.length})
-          </button>
+        {/* Game History link */}
+        <div className="border-t border-gray-700 pt-3 flex items-center justify-center">
           <button
             onClick={onHistory}
-            className="text-sm text-gray-400 hover:text-gray-200 transition"
+            className="text-xs px-2.5 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium transition whitespace-nowrap"
           >
             Game History
           </button>
