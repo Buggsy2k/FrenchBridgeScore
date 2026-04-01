@@ -1,8 +1,10 @@
-import type { GameConfig, GameState } from '../models/types';
+import type { GameConfig, GameState, TrumpSuit, CompletedGame } from '../models/types';
 import type { IGameService } from './IGameService';
 import { createGame, submitBids, submitResults } from '../models/gameLogic';
 
 const STORAGE_KEY = 'frenchbridge_games';
+const ACTIVE_GAME_KEY = 'frenchbridge_active_game';
+const COMPLETED_KEY = 'frenchbridge_completed_games';
 
 function loadAll(): Record<string, GameState> {
   try {
@@ -39,12 +41,13 @@ export class LocalStorageGameService implements IGameService {
 
   async submitBids(
     gameId: string,
-    bids: { playerId: string; bid: number }[]
+    bids: { playerId: string; bid: number }[],
+    trumpSuit?: TrumpSuit
   ): Promise<GameState> {
     const all = loadAll();
     const game = all[gameId];
     if (!game) throw new Error(`Game ${gameId} not found`);
-    const updated = submitBids(game, bids);
+    const updated = submitBids(game, bids, trumpSuit);
     all[gameId] = updated;
     saveAll(all);
     return updated;
@@ -76,5 +79,37 @@ export class LocalStorageGameService implements IGameService {
     const all = loadAll();
     delete all[id];
     saveAll(all);
+  }
+
+  getActiveGameId(): string | null {
+    return localStorage.getItem(ACTIVE_GAME_KEY);
+  }
+
+  setActiveGameId(id: string): void {
+    localStorage.setItem(ACTIVE_GAME_KEY, id);
+  }
+
+  clearActiveGameId(): void {
+    localStorage.removeItem(ACTIVE_GAME_KEY);
+  }
+
+  async getCompletedGames(): Promise<CompletedGame[]> {
+    try {
+      const raw = localStorage.getItem(COMPLETED_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async saveCompletedGame(game: CompletedGame): Promise<void> {
+    const games = await this.getCompletedGames();
+    games.push(game);
+    localStorage.setItem(COMPLETED_KEY, JSON.stringify(games));
+  }
+
+  async deleteCompletedGame(id: string): Promise<void> {
+    const games = await this.getCompletedGames();
+    localStorage.setItem(COMPLETED_KEY, JSON.stringify(games.filter((g) => g.id !== id)));
   }
 }

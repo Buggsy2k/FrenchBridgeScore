@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import type { Player, Hand } from '../models/types';
 import { calculateScore } from '../models/gameLogic';
 import DigitInputRow from './DigitInputRow';
@@ -14,6 +14,26 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
     () => Object.fromEntries(players.map((p) => [p.id, null]))
   );
   const submitBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  const sayNope = useCallback(() => {
+    // Vibrate as haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate([80, 50, 80]);
+    }
+    // Try speech synthesis as well
+    try {
+      const u = new SpeechSynthesisUtterance('Nope');
+      u.rate = 1.1;
+      u.pitch = 1.4;
+      const voices = speechSynthesis.getVoices();
+      const femaleVoice = voices.find((v) => /female|woman|zira|samantha|karen|fiona/i.test(v.name));
+      if (femaleVoice) u.voice = femaleVoice;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch {
+      // Speech not available — vibration is enough
+    }
+  }, []);
 
   const allFilled = players.every((p) => values[p.id] !== null && values[p.id] !== undefined);
   const totalTricks = useMemo(
@@ -35,31 +55,32 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
     onSubmit(results);
   }
 
+  const rightLabels = useMemo(
+    () => Object.fromEntries(
+      players.map((p) => {
+        const bid = hand.bids.find((b) => b.playerId === p.id)?.bid ?? 0;
+        return [p.id, (
+          <span className="text-2xl sm:text-3xl font-bold text-blue-400 w-10 text-center" title="Bid">
+            {bid}
+          </span>
+        )];
+      })
+    ),
+    [players, hand.bids]
+  );
+
   return (
     <div className="space-y-4">
-      {/* Bid reminder */}
-      <div className="bg-gray-800/60 rounded-xl p-3 space-y-1">
-        <div className="text-sm text-gray-400 font-medium mb-1">Tricks wanted:</div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {players.map((p) => {
-            const bid = hand.bids.find((b) => b.playerId === p.id)?.bid ?? 0;
-            return (
-              <span key={p.id} className="text-base">
-                <span className="font-semibold">{p.name}</span>{' '}
-                <span className="text-blue-400 font-bold">{bid}</span>
-              </span>
-            );
-          })}
-        </div>
-      </div>
-
       <DigitInputRow
         players={players}
         values={values}
         maxValue={hand.cardsDealt}
+        totalBudget={hand.cardsDealt}
         onChange={handleChange}
+        onReject={sayNope}
         autoFocus
         nextFocusRef={submitBtnRef}
+        rightLabels={rightLabels}
       />
 
       {/* Tricks total + score preview */}
@@ -72,7 +93,7 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
           <span className="text-gray-500"> / {hand.cardsDealt}</span>
           {!tricksMatch && allFilled && (
             <span className="text-red-400 text-sm ml-2">
-              — {Math.abs(totalTricks - hand.cardsDealt)} {totalTricks > hand.cardsDealt ? 'over' : 'under'}
+              — {Math.abs(totalTricks - hand.cardsDealt)} {totalTricks > hand.cardsDealt ? 'over' : 'short'}
             </span>
           )}
         </div>

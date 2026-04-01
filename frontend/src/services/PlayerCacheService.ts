@@ -37,3 +37,28 @@ export function upsertCachedPlayers(players: { fullName: string; alias: string }
   }
   savePlayers(existing);
 }
+
+export function updateCachedPlayer(id: string, fullName: string, alias: string): void {
+  const existing = loadPlayers();
+  const player = existing.find((p) => p.id === id);
+  if (player) {
+    player.fullName = fullName;
+    player.alias = alias;
+    savePlayers(existing);
+  }
+}
+
+export function deleteCachedPlayer(id: string): void {
+  const existing = loadPlayers().filter((p) => p.id !== id);
+  savePlayers(existing);
+}
+
+export function reorderCachedPlayer(id: string, direction: 'up' | 'down'): void {
+  const players = loadPlayers();
+  const idx = players.findIndex((p) => p.id === id);
+  if (idx === -1) return;
+  const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (newIdx < 0 || newIdx >= players.length) return;
+  [players[idx], players[newIdx]] = [players[newIdx], players[idx]];
+  savePlayers(players);
+}

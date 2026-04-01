@@ -11,6 +11,12 @@ interface DigitInputRowProps {
   nextFocusRef?: React.RefObject<HTMLElement | null>;
   /** If set, show a dealer icon next to this player */
   dealerPlayerId?: string;
+  /** Optional per-player content shown to the right of the input, keyed by player id */
+  rightLabels?: Record<string, React.ReactNode>;
+  /** If set, reject a digit when the sum of all values would exceed this total */
+  totalBudget?: number;
+  /** Called when a digit is rejected (e.g. exceeds budget) */
+  onReject?: () => void;
 }
 
 /**
@@ -27,6 +33,9 @@ export default function DigitInputRow({
   autoFocus = false,
   nextFocusRef,
   dealerPlayerId,
+  rightLabels,
+  totalBudget,
+  onReject,
 }: DigitInputRowProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -59,7 +68,11 @@ export default function DigitInputRow({
       if (e.key.length === 1 && /^[0-9]$/.test(e.key)) {
         e.preventDefault();
         const digit = parseInt(e.key, 10);
-        if (digit > maxValue) return; // reject out of range silently
+        if (digit > maxValue) { onReject?.(); return; }
+        if (totalBudget !== undefined) {
+          const othersSum = players.reduce((s, p) => s + (p.id === playerId ? 0 : (values[p.id] ?? 0)), 0);
+          if (othersSum + digit > totalBudget) { onReject?.(); return; }
+        }
         onChange(playerId, digit);
 
         // Auto-advance
@@ -77,7 +90,7 @@ export default function DigitInputRow({
         e.preventDefault();
       }
     },
-    [players, values, maxValue, onChange, nextFocusRef]
+    [players, values, maxValue, onChange, nextFocusRef, totalBudget, onReject]
   );
 
   return (
@@ -119,7 +132,10 @@ export default function DigitInputRow({
                 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/30 focus:bg-gray-700
               `}
             />
-            <span className="text-sm text-gray-500 w-10">/ {maxValue}</span>
+            {rightLabels && rightLabels[player.id] !== undefined
+              ? rightLabels[player.id]
+              : <span className="text-sm text-gray-500 w-10">/ {maxValue}</span>
+            }
           </div>
         );
       })}

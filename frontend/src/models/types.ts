@@ -26,16 +26,20 @@ export interface HandResult {
   score: number;
 }
 
+export type TrumpSuit = 'hearts' | 'spades' | 'diamonds' | 'clubs';
+
 export interface Hand {
   handNumber: number; // 1-based index in the sequence
   cardsDealt: number;
   dealerPlayerId: string;
+  trumpSuit?: TrumpSuit;
   phase: 'bidding' | 'results' | 'complete';
   bids: HandBid[];
   results: HandResult[];
 }
 
 export interface GameConfig {
+  playerIds: string[];     // persistent unique IDs from player cache
   playerNames: string[];   // aliases used during game
   playerFullNames: string[]; // full names for cache
   firstDealerIndex: number;
@@ -61,4 +65,30 @@ export interface PlayerScore {
   playerName: string;
   totalScore: number;
   handScores: { handNumber: number; score: number; bid: number; tricksTaken: number }[];
+}
+
+// ─── Game History ───
+
+export interface CompletedGame {
+  id: string;
+  gameId: string;
+  players: Player[];
+  hands: Hand[];
+  config: GameConfig;
+  scoreboard: PlayerScore[];
+  winner: { playerId: string; playerName: string; totalScore: number };
+  completedAt: string;
+  createdAt: string;
+}
+
+export interface PlayerStats {
+  playerId: string;
+  playerName: string;
+  gamesPlayed: number;
+  wins: number;
+  winRate: number;
+  avgScore: number;
+  bestScore: number;
+  totalScore: number;
+  avgAccuracy: number; // % of hands where bid === tricksTaken
 }

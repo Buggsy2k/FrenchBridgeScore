@@ -2,15 +2,21 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { calculateMaxHands, generateHandSequence } from '../models/gameLogic';
 import { getCachedPlayers, upsertCachedPlayers } from '../services/PlayerCacheService';
-import type { CachedPlayer } from '../models/types';
 import PlayerSelect from './PlayerSelect';
 
 interface PlayerEntry {
+  cachedId: string | null;  // persistent ID from player cache
   fullName: string;
   alias: string;
 }
 
-export default function GameSetup() {
+interface Props {
+  onManagePlayers: () => void;
+  onHistory: () => void;
+  visible?: boolean;
+}
+
+export default function GameSetup({ onManagePlayers, onHistory, visible = true }: Props) {
   const { startGame, lastConfig } = useGame();
 
   const [cachedPlayers, setCachedPlayers] = useState(() => getCachedPlayers());
@@ -20,20 +26,61 @@ export default function GameSetup() {
   const [players, setPlayers] = useState<PlayerEntry[]>(() => {
     if (lastConfig) {
       return lastConfig.playerNames.map((alias, i) => ({
+        cachedId: lastConfig.playerIds?.[i] ?? null,
         fullName: lastConfig.playerFullNames?.[i] ?? alias,
         alias,
       }));
     }
-    return Array.from({ length: 4 }, () => ({ fullName: '', alias: '' }));
+    return Array.from({ length: 4 }, () => ({ cachedId: null, fullName: '', alias: '' }));
   });
   const [firstDealerIndex, setFirstDealerIndex] = useState(lastConfig?.firstDealerIndex ?? 0);
   const [customMaxHands, setCustomMaxHands] = useState<number | null>(lastConfig?.maxHands ?? null);
   const nameRefs = useRef<(HTMLInputElement | null)[]>([]);
   const startBtnRef = useRef<HTMLButtonElement | null>(null);
+  const playerCountRef = useRef(playerCount);
+  playerCountRef.current = playerCount;
+  const prevVisibleRef = useRef(true);
 
   useEffect(() => {
     nameRefs.current[0]?.focus();
   }, []);
+
+  // Sync with player cache when returning from Manage Players
+  useEffect(() => {
+    const wasHidden = !prevVisibleRef.current;
+    prevVisibleRef.current = visible;
+    if (!wasHidden || !visible) return;
+
+    const freshCache = getCachedPlayers();
+    setCachedPlayers(freshCache);
+
+    setPlayers((prev) => {
+      const count = playerCountRef.current;
+      const active = prev.slice(0, count);
+
+      const synced = active
+        .map((p) => {
+          if (!p.cachedId) return p;
+          const cached = freshCache.find((c) => c.id === p.cachedId);
+          if (!cached) return null;
+          return { ...p, fullName: cached.fullName, alias: cached.alias };
+        })
+        .filter((p): p is PlayerEntry => p !== null);
+
+      const newCount = Math.max(3, synced.length);
+      while (synced.length < newCount) {
+        synced.push({ cachedId: null, fullName: '', alias: '' });
+      }
+
+      if (newCount !== count) {
+        setPlayerCount(newCount);
+        setFirstDealerIndex((d) => (d >= newCount ? 0 : d));
+        setCustomMaxHands(null);
+      }
+
+      return synced;
+    });
+  }, [visible]);
 
   const maxAllowed = useMemo(() => calculateMaxHands(playerCount), [playerCount]);
   const maxHands = customMaxHands ?? Math.min(8, maxAllowed);
@@ -44,19 +91,52 @@ export default function GameSetup() {
     setPlayerCount(clamped);
     setPlayers((prev) => {
       const next = [...prev];
-      while (next.length < clamped) next.push({ fullName: '', alias: '' });
+      while (next.length < clamped) next.push({ cachedId: null, fullName: '', alias: '' });
       return next.slice(0, clamped);
     });
     if (firstDealerIndex >= clamped) setFirstDealerIndex(0);
     setCustomMaxHands(null);
   }
 
-  function handlePlayerChange(index: number, fullName: string, alias: string) {
+  function handlePlayerChange(index: number, fullName: string, alias: string, cachedId: string | null) {
     setPlayers((prev) => {
       const next = [...prev];
-      next[index] = { fullName, alias };
+      next[index] = { cachedId, fullName, alias };
       return next;
     });
+  }
+
+  function handleMovePlayer(fromIndex: number, direction: 'up' | 'down') {
+    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+    if (toIndex < 0 || toIndex >= playerCount) return;
+    setPlayers((prev) => {
+      const next = [...prev];
+      [next[fromIndex], next[toIndex]] = [next[toIndex], next[fromIndex]];
+      return next;
+    });
+    setFirstDealerIndex((prev) => {
+      if (prev === fromIndex) return toIndex;
+      if (prev === toIndex) return fromIndex;
+      return prev;
+    });
+  }
+
+  function handleRemovePlayer(index: number) {
+    if (playerCount <= 3) return;
+    const newCount = playerCount - 1;
+    setPlayerCount(newCount);
+    setPlayers((prev) => {
+      const next = [...prev];
+      next.splice(index, 1);
+      return next.slice(0, newCount);
+    });
+    setFirstDealerIndex((prev) => {
+      if (prev >= newCount) return 0;
+      if (prev === index) return 0;
+      if (prev > index) return prev - 1;
+      return prev;
+    });
+    setCustomMaxHands(null);
   }
 
   const usedFullNames = players.map((p) => p.fullName).filter((n) => n.trim());
@@ -73,7 +153,16 @@ export default function GameSetup() {
     // Save to player cache
     upsertCachedPlayers(trimmed);
     refreshCache();
+    // Resolve persistent IDs: use cached ID if available, otherwise generate a new one
+    const playerIds = players.slice(0, playerCount).map((p) => {
+      if (p.cachedId) return p.cachedId;
+      const cached = cachedPlayers.find(
+        (c) => c.fullName.toLowerCase() === p.fullName.trim().toLowerCase()
+      );
+      return cached?.id ?? crypto.randomUUID();
+    });
     await startGame({
+      playerIds,
       playerNames: trimmed.map((p) => p.alias),
       playerFullNames: trimmed.map((p) => p.fullName),
       firstDealerIndex,
@@ -82,10 +171,10 @@ export default function GameSetup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-lg space-y-6">
-        <h1 className="text-3xl sm:text-4xl font-bold text-center tracking-tight flex items-center justify-center gap-3">
-          <img src="/favicon.svg" alt="" className="w-10 h-10" />
+    <div className="min-h-screen flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-lg space-y-4 sm:space-y-6">
+        <h1 className="text-2xl sm:text-4xl font-bold text-center tracking-tight flex items-center justify-center gap-2 sm:gap-3">
+          <img src="/favicon.svg" alt="" className="w-8 h-8 sm:w-10 sm:h-10" />
           French Bridge Scores
         </h1>
 
@@ -114,26 +203,67 @@ export default function GameSetup() {
         </div>
 
         {/* Player names */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-400">Players</label>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-400">Players</label>
+            <button
+              onClick={onManagePlayers}
+              className="text-xs px-2.5 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium transition whitespace-nowrap"
+            >
+              Manage Players ({cachedPlayers.length})
+            </button>
+          </div>
           {players.slice(0, playerCount).map((p, i) => (
-            <PlayerSelect
-              key={i}
-              index={i}
-              fullName={p.fullName}
-              alias={p.alias}
-              cachedPlayers={cachedPlayers}
-              usedFullNames={usedFullNames}
-              onSelect={handlePlayerChange}
-              inputRef={(el) => { nameRefs.current[i] = el; }}
-              onEnter={() => {
-                if (i < playerCount - 1) {
-                  nameRefs.current[i + 1]?.focus();
-                } else {
-                  startBtnRef.current?.focus();
-                }
-              }}
-            />
+            <div key={i} className="flex items-center gap-1">
+              <div className="flex flex-col -space-y-0.5">
+                <button
+                  onClick={() => handleMovePlayer(i, 'up')}
+                  disabled={i === 0}
+                  className="text-gray-400 hover:text-white disabled:opacity-20 text-xs leading-none px-0.5 py-0.5"
+                  title="Move up"
+                  aria-label="Move up"
+                >
+                  ▲
+                </button>
+                <button
+                  onClick={() => handleMovePlayer(i, 'down')}
+                  disabled={i === playerCount - 1}
+                  className="text-gray-400 hover:text-white disabled:opacity-20 text-xs leading-none px-0.5 py-0.5"
+                  title="Move down"
+                  aria-label="Move down"
+                >
+                  ▼
+                </button>
+              </div>
+              <div className="flex-1 min-w-0">
+                <PlayerSelect
+                  index={i}
+                  fullName={p.fullName}
+                  alias={p.alias}
+                  cachedId={p.cachedId}
+                  cachedPlayers={cachedPlayers}
+                  usedFullNames={usedFullNames}
+                  onSelect={handlePlayerChange}
+                  inputRef={(el) => { nameRefs.current[i] = el; }}
+                  onEnter={() => {
+                    if (i < playerCount - 1) {
+                      nameRefs.current[i + 1]?.focus();
+                    } else {
+                      startBtnRef.current?.focus();
+                    }
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => handleRemovePlayer(i)}
+                disabled={playerCount <= 3}
+                className="text-gray-400 hover:text-red-400 disabled:opacity-20 p-1 text-sm"
+                title="Remove player"
+                aria-label="Remove player"
+              >
+                ✕
+              </button>
+            </div>
           ))}
         </div>
 
@@ -193,87 +323,16 @@ export default function GameSetup() {
           Start Game
         </button>
 
-        {/* Manage Players */}
-        <ManagePlayers cachedPlayers={cachedPlayers} onRefresh={refreshCache} />
-      </div>
-    </div>
-  );
-}
-
-function ManagePlayers({ cachedPlayers, onRefresh }: { cachedPlayers: CachedPlayer[]; onRefresh: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [fullName, setFullName] = useState('');
-  const [alias, setAlias] = useState('');
-  const nameRef = useRef<HTMLInputElement>(null);
-
-  function handleAdd() {
-    const fn = fullName.trim();
-    const al = alias.trim() || fn;
-    if (!fn) return;
-    upsertCachedPlayers([{ fullName: fn, alias: al }]);
-    onRefresh();
-    setFullName('');
-    setAlias('');
-    nameRef.current?.focus();
-  }
-
-  return (
-    <div className="border-t border-gray-700 pt-4">
-      <button
-        onClick={() => setOpen(!open)}
-        className="text-sm text-gray-400 hover:text-gray-200 flex items-center gap-1 transition"
-      >
-        <span className={`inline-block transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
-        Manage Players ({cachedPlayers.length})
-      </button>
-
-      {open && (
-        <div className="mt-3 space-y-3">
-          {/* Add new player form */}
-          <div className="flex gap-2">
-            <input
-              ref={nameRef}
-              type="text"
-              placeholder="Full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-              className="flex-1 bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="Alias (optional)"
-              value={alias}
-              onChange={(e) => setAlias(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-              className="flex-1 bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleAdd}
-              disabled={!fullName.trim()}
-              className="px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 disabled:opacity-30 text-sm font-medium transition"
-            >
-              Add
-            </button>
-          </div>
-
-          {/* Existing players list */}
-          {cachedPlayers.length > 0 ? (
-            <ul className="text-sm text-gray-300 space-y-1 max-h-40 overflow-y-auto">
-              {cachedPlayers.map((p) => (
-                <li key={p.id} className="flex justify-between px-2 py-1 rounded bg-gray-700/50">
-                  <span>{p.fullName}</span>
-                  {p.alias !== p.fullName && (
-                    <span className="text-gray-500">({p.alias})</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-gray-500">No players saved yet.</p>
-          )}
+        {/* Game History link */}
+        <div className="border-t border-gray-700 pt-3 flex items-center justify-center">
+          <button
+            onClick={onHistory}
+            className="text-xs px-2.5 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium transition whitespace-nowrap"
+          >
+            📋 Game History
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 # Dependencies
+node_modules/
 frontend/node_modules/
 
 # Build output
@@ -8,6 +9,18 @@ frontend/dist/
 .env
 .env.*
 
+# Capacitor
+frontend/android/app/src/main/assets/public/
+frontend/android/app/src/main/assets/capacitor.config.json
+
+# Android build artifacts
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/capacitor-cordova-android-plugins/build/
+frontend/android/.idea/
+frontend/android/.gradle/
+frontend/android/local.properties
+
 # Editor / OS
 .vscode/*
 !.vscode/settings.json
@@ -16,3 +29,7 @@ frontend/dist/
 *~
 Thumbs.db
 Desktop.ini
+
+# OneDrive sync conflict files
+*-Buggsy-Laptop*
+*-Buggsy-Laptop-2*
