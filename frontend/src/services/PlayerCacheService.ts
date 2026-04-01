@@ -54,11 +54,11 @@ export function deleteCachedPlayer(id: string): void {
 }
 
 export function reorderCachedPlayer(id: string, direction: 'up' | 'down'): void {
-  const players = loadPlayers();
-  const idx = players.findIndex((p) => p.id === id);
-  if (idx === -1) return;
-  const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-  if (newIdx < 0 || newIdx >= players.length) return;
-  [players[idx], players[newIdx]] = [players[newIdx], players[idx]];
-  savePlayers(players);
+  const existing = loadPlayers();
+  const idx = existing.findIndex((p) => p.id === id);
+  if (idx < 0) return;
+  const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (targetIdx < 0 || targetIdx >= existing.length) return;
+  [existing[idx], existing[targetIdx]] = [existing[targetIdx], existing[idx]];
+  savePlayers(existing);
 }

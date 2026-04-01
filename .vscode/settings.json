@@ -7,7 +7,17 @@
         "git add": true,
         "npm run build": true,
         "npx cap": true,
-        ".\\build_android_apk.ps1": true
+        "npm run cap:run": true,
+        "java": true,
+        "where": true,
+        "Get-Command": true,
+        "&": true,
+        ".\\build_android_apk.ps1": true,
+        ".\\gradlew.bat": true
     },
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "files.exclude": {
+        "frontend/android": true
+    },
+    "java.configuration.updateBuildConfiguration": "disabled",
+    "gradle.autoDetect": "off"
 }

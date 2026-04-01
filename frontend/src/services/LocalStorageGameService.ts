@@ -4,7 +4,7 @@ import { createGame, submitBids, submitResults } from '../models/gameLogic';
 
 const STORAGE_KEY = 'frenchbridge_games';
 const ACTIVE_GAME_KEY = 'frenchbridge_active_game';
-const COMPLETED_KEY = 'frenchbridge_completed_games';
+const HISTORY_KEY = 'frenchbridge_history';
 
 function loadAll(): Record<string, GameState> {
   try {
@@ -17,6 +17,19 @@ function loadAll(): Record<string, GameState> {
 
 function saveAll(data: Record<string, GameState>): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadHistory(): CompletedGame[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(history: CompletedGame[]): void {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
 export class LocalStorageGameService implements IGameService {
@@ -93,23 +106,18 @@ export class LocalStorageGameService implements IGameService {
     localStorage.removeItem(ACTIVE_GAME_KEY);
   }
 
-  async getCompletedGames(): Promise<CompletedGame[]> {
-    try {
-      const raw = localStorage.getItem(COMPLETED_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+  async saveCompletedGame(game: CompletedGame): Promise<void> {
+    const history = loadHistory();
+    history.push(game);
+    saveHistory(history);
   }
 
-  async saveCompletedGame(game: CompletedGame): Promise<void> {
-    const games = await this.getCompletedGames();
-    games.push(game);
-    localStorage.setItem(COMPLETED_KEY, JSON.stringify(games));
+  async getCompletedGames(): Promise<CompletedGame[]> {
+    return loadHistory();
   }
 
   async deleteCompletedGame(id: string): Promise<void> {
-    const games = await this.getCompletedGames();
-    localStorage.setItem(COMPLETED_KEY, JSON.stringify(games.filter((g) => g.id !== id)));
+    const history = loadHistory().filter((g) => g.id !== id);
+    saveHistory(history);
   }
 }

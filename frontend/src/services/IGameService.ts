@@ -17,7 +17,7 @@ export interface IGameService {
   setActiveGameId(id: string): void;
   clearActiveGameId(): void;
   // Game history
-  getCompletedGames(): Promise<CompletedGame[]>;
   saveCompletedGame(game: CompletedGame): Promise<void>;
+  getCompletedGames(): Promise<CompletedGame[]>;
   deleteCompletedGame(id: string): Promise<void>;
 }

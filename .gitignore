@@ -9,17 +9,18 @@ frontend/dist/
 .env
 .env.*
 
-# Capacitor
+# Capacitor / Android
 frontend/android/app/src/main/assets/public/
 frontend/android/app/src/main/assets/capacitor.config.json
-
-# Android build artifacts
+frontend/android/app/src/main/assets/capacitor.plugins.json
 frontend/android/app/build/
 frontend/android/build/
 frontend/android/capacitor-cordova-android-plugins/build/
-frontend/android/.idea/
 frontend/android/.gradle/
+frontend/android/.idea/
 frontend/android/local.properties
+frontend/android/keystore.properties
+frontend/android/app/french-bridge.keystore
 
 # Editor / OS
 .vscode/*
