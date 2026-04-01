@@ -184,7 +184,7 @@ export default function EditPlayersDialog({ onClose }: Props) {
       {/* Remove confirmation */}
       {confirmPlayer && (
         <div
-          className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4"
+          className="fixed inset-0 z-60 bg-black/60 flex items-center justify-center p-4"
           onClick={() => setConfirmRemoveId(null)}
         >
           <div
