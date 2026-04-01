@@ -20,13 +20,10 @@ try {
     npx cap sync android
     if ($LASTEXITCODE -ne 0) { throw "Capacitor sync failed" }
 
-<<<<<<< HEAD
     Write-Host "Regenerating app icons..." -ForegroundColor Cyan
     node generate-icons.mjs
     if ($LASTEXITCODE -ne 0) { throw "Icon generation failed" }
 
-=======
->>>>>>> 6bbfa76b388c1782de731d6f200df74a420e9300
     Push-Location android
     try {
         Write-Host "Building release APK..." -ForegroundColor Cyan
