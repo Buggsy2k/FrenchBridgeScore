@@ -4,47 +4,64 @@
       <stop offset="0%" stop-color="#1B5E20"/>
       <stop offset="100%" stop-color="#0D3B12"/>
     </linearGradient>
+    <linearGradient id="spadeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#263238"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
   </defs>
 
   <!-- Background: card-table green -->
   <rect width="512" height="512" rx="80" fill="url(#bg)"/>
 
-  <!-- Large red heart centered, slightly smaller -->
-  <path d="M256 400
-           C256 400 80 250 80 168
-           C80 108 120 72 178 72
-           C214 72 240 98 256 126
-           C272 98 298 72 334 72
-           C392 72 432 108 432 168
-           C432 250 256 400 256 400Z"
-        fill="#D32F2F"/>
-  <!-- Heart highlight -->
-  <path d="M256 382
-           C256 382 98 242 98 168
-           C98 118 130 86 178 86
-           C210 86 236 108 256 136
-           C276 108 302 86 334 86
-           C382 86 414 118 414 168
-           C414 242 256 382 256 382Z"
-        fill="#E53935"/>
-  <!-- Heart sheen -->
-  <ellipse cx="195" cy="142" rx="40" ry="26" fill="#EF5350" opacity="0.5"/>
+  <!-- Subtle felt texture lines -->
+  <line x1="0" y1="128" x2="512" y2="128" stroke="#1A5A1E" stroke-width="0.5" opacity="0.3"/>
+  <line x1="0" y1="256" x2="512" y2="256" stroke="#1A5A1E" stroke-width="0.5" opacity="0.3"/>
+  <line x1="0" y1="384" x2="512" y2="384" stroke="#1A5A1E" stroke-width="0.5" opacity="0.3"/>
 
-  <!-- F - top left -->
-  <text x="195" y="230" text-anchor="middle" font-family="'Georgia','Times New Roman',serif"
-        font-size="120" font-weight="bold" fill="#000" opacity="0.2" dx="2" dy="2">F</text>
-  <text x="195" y="230" text-anchor="middle" font-family="'Georgia','Times New Roman',serif"
-        font-size="120" font-weight="bold" fill="#FFFFFF">F</text>
+  <!-- Large spade shape behind text -->
+  <path d="M256 80
+           C256 80 120 210 120 290
+           C120 340 160 370 210 355
+           C230 348 248 332 256 310
+           C264 332 282 348 302 355
+           C352 370 392 340 392 290
+           C392 210 256 80 256 80Z"
+        fill="url(#spadeGrad)" opacity="0.35"/>
+  <!-- Spade stem -->
+  <rect x="244" y="310" width="24" height="60" rx="4" fill="#000" opacity="0.35"/>
+  <!-- Spade base flourish -->
+  <path d="M210 370 Q233 340 256 370 Q279 340 302 370"
+        stroke="#000" stroke-width="6" fill="none" opacity="0.35"/>
 
-  <!-- B - top right -->
-  <text x="317" y="230" text-anchor="middle" font-family="'Georgia','Times New Roman',serif"
-        font-size="120" font-weight="bold" fill="#000" opacity="0.2" dx="2" dy="2">B</text>
-  <text x="317" y="230" text-anchor="middle" font-family="'Georgia','Times New Roman',serif"
-        font-size="120" font-weight="bold" fill="#FFFFFF">B</text>
+  <!-- "FB" text - bold white with slight shadow -->
+  <text x="256" y="295" text-anchor="middle" font-family="'Georgia','Times New Roman',serif"
+        font-size="220" font-weight="bold" letter-spacing="-8">
+    <tspan fill="#000" opacity="0.3" dx="3" dy="3">FB</tspan>
+  </text>
+  <text x="256" y="295" text-anchor="middle" font-family="'Georgia','Times New Roman',serif"
+        font-size="220" font-weight="bold" fill="#FFFFFF" letter-spacing="-8">FB</text>
 
-  <!-- S - bottom center -->
-  <text x="256" y="355" text-anchor="middle" font-family="'Georgia','Times New Roman',serif"
-        font-size="120" font-weight="bold" fill="#000" opacity="0.2" dx="2" dy="2">S</text>
-  <text x="256" y="355" text-anchor="middle" font-family="'Georgia','Times New Roman',serif"
-        font-size="120" font-weight="bold" fill="#FFFFFF">S</text>
+  <!-- Score accent: gold tally marks bottom -->
+  <g transform="translate(168, 400)" stroke="#FFD54F" stroke-width="5" stroke-linecap="round" opacity="0.85">
+    <line x1="0" y1="0" x2="0" y2="36"/>
+    <line x1="18" y1="0" x2="18" y2="36"/>
+    <line x1="36" y1="0" x2="36" y2="36"/>
+    <line x1="54" y1="0" x2="54" y2="36"/>
+    <line x1="-6" y1="28" x2="60" y2="6"/>
+  </g>
+  <!-- Second tally group -->
+  <g transform="translate(280, 400)" stroke="#FFD54F" stroke-width="5" stroke-linecap="round" opacity="0.85">
+    <line x1="0" y1="0" x2="0" y2="36"/>
+    <line x1="18" y1="0" x2="18" y2="36"/>
+    <line x1="36" y1="0" x2="36" y2="36"/>
+    <line x1="54" y1="0" x2="54" y2="36"/>
+    <line x1="-6" y1="28" x2="60" y2="6"/>
+  </g>
+
+  <!-- Small decorative spade top-left -->
+  <path d="M72 56 C72 56 56 72 56 80 C56 86 62 88 72 84 C82 88 88 86 88 80 C88 72 72 56 72 56Z"
+        fill="#FFD54F" opacity="0.6"/>
+  <!-- Small decorative spade bottom-right -->
+  <path d="M440 456 C440 456 424 472 424 480 C424 486 430 488 440 484 C450 488 456 486 456 480 C456 472 440 456 440 456Z"
+        fill="#FFD54F" opacity="0.6"/>
 </svg>

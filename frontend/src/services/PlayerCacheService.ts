@@ -52,3 +52,13 @@ export function deleteCachedPlayer(id: string): void {
   const existing = loadPlayers().filter((p) => p.id !== id);
   savePlayers(existing);
 }
+
+export function reorderCachedPlayer(id: string, direction: 'up' | 'down'): void {
+  const existing = loadPlayers();
+  const idx = existing.findIndex((p) => p.id === id);
+  if (idx < 0) return;
+  const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (targetIdx < 0 || targetIdx >= existing.length) return;
+  [existing[idx], existing[targetIdx]] = [existing[targetIdx], existing[idx]];
+  savePlayers(existing);
+}

@@ -12,6 +12,7 @@ frontend/dist/
 # Capacitor / Android
 frontend/android/app/src/main/assets/public/
 frontend/android/app/src/main/assets/capacitor.config.json
+frontend/android/app/src/main/assets/capacitor.plugins.json
 frontend/android/app/build/
 frontend/android/build/
 frontend/android/capacitor-cordova-android-plugins/build/

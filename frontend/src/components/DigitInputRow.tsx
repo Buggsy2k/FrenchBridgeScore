@@ -13,6 +13,10 @@ interface DigitInputRowProps {
   dealerPlayerId?: string;
   /** Optional per-player content shown to the right of the input, keyed by player id */
   rightLabels?: Record<string, React.ReactNode>;
+  /** If set, reject a digit when the sum of all values would exceed this total */
+  totalBudget?: number;
+  /** Called when a digit is rejected (e.g. exceeds budget) */
+  onReject?: () => void;
 }
 
 /**
@@ -30,6 +34,8 @@ export default function DigitInputRow({
   nextFocusRef,
   dealerPlayerId,
   rightLabels,
+  totalBudget,
+  onReject,
 }: DigitInputRowProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -62,7 +68,11 @@ export default function DigitInputRow({
       if (e.key.length === 1 && /^[0-9]$/.test(e.key)) {
         e.preventDefault();
         const digit = parseInt(e.key, 10);
-        if (digit > maxValue) return; // reject out of range silently
+        if (digit > maxValue) { onReject?.(); return; }
+        if (totalBudget !== undefined) {
+          const othersSum = players.reduce((s, p) => s + (p.id === playerId ? 0 : (values[p.id] ?? 0)), 0);
+          if (othersSum + digit > totalBudget) { onReject?.(); return; }
+        }
         onChange(playerId, digit);
 
         // Auto-advance
@@ -80,7 +90,7 @@ export default function DigitInputRow({
         e.preventDefault();
       }
     },
-    [players, values, maxValue, onChange, nextFocusRef]
+    [players, values, maxValue, onChange, nextFocusRef, totalBudget, onReject]
   );
 
   return (

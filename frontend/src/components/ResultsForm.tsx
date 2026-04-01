@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import type { Player, Hand } from '../models/types';
 import { calculateScore } from '../models/gameLogic';
 import DigitInputRow from './DigitInputRow';
@@ -14,6 +14,26 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
     () => Object.fromEntries(players.map((p) => [p.id, null]))
   );
   const submitBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  const sayNope = useCallback(() => {
+    // Vibrate as haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate([80, 50, 80]);
+    }
+    // Try speech synthesis as well
+    try {
+      const u = new SpeechSynthesisUtterance('Nope');
+      u.rate = 1.1;
+      u.pitch = 1.4;
+      const voices = speechSynthesis.getVoices();
+      const femaleVoice = voices.find((v) => /female|woman|zira|samantha|karen|fiona/i.test(v.name));
+      if (femaleVoice) u.voice = femaleVoice;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch {
+      // Speech not available — vibration is enough
+    }
+  }, []);
 
   const allFilled = players.every((p) => values[p.id] !== null && values[p.id] !== undefined);
   const totalTricks = useMemo(
@@ -35,12 +55,6 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
     onSubmit(results);
   }
 
-  const totalBids = useMemo(
-    () => players.reduce((s, p) => s + (hand.bids.find((b) => b.playerId === p.id)?.bid ?? 0), 0),
-    [players, hand.bids]
-  );
-  const bidDiff = totalBids - hand.cardsDealt;
-
   const rightLabels = useMemo(
     () => Object.fromEntries(
       players.map((p) => {
@@ -57,22 +71,13 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
 
   return (
     <div className="space-y-4">
-      {/* Bid analysis */}
-      <div className="text-center text-lg">
-        {bidDiff === 0 ? (
-          <span className="font-bold text-green-400">Even</span>
-        ) : (
-          <span className="font-bold text-red-400">
-            {Math.abs(bidDiff)} {bidDiff > 0 ? 'overbid' : 'underbid'}
-          </span>
-        )}
-      </div>
-
       <DigitInputRow
         players={players}
         values={values}
         maxValue={hand.cardsDealt}
+        totalBudget={hand.cardsDealt}
         onChange={handleChange}
+        onReject={sayNope}
         autoFocus
         nextFocusRef={submitBtnRef}
         rightLabels={rightLabels}
@@ -88,7 +93,7 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
           <span className="text-gray-500"> / {hand.cardsDealt}</span>
           {!tricksMatch && allFilled && (
             <span className="text-red-400 text-sm ml-2">
-              — {Math.abs(totalTricks - hand.cardsDealt)} {totalTricks > hand.cardsDealt ? 'over' : 'under'}
+              — {Math.abs(totalTricks - hand.cardsDealt)} {totalTricks > hand.cardsDealt ? 'over' : 'short'}
             </span>
           )}
         </div>

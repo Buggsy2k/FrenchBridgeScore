@@ -1,9 +1,10 @@
-import type { GameConfig, GameState } from '../models/types';
+import type { GameConfig, GameState, TrumpSuit, CompletedGame } from '../models/types';
 import type { IGameService } from './IGameService';
 import { createGame, submitBids, submitResults } from '../models/gameLogic';
 
 const STORAGE_KEY = 'frenchbridge_games';
 const ACTIVE_GAME_KEY = 'frenchbridge_active_game';
+const HISTORY_KEY = 'frenchbridge_history';
 
 function loadAll(): Record<string, GameState> {
   try {
@@ -16,6 +17,19 @@ function loadAll(): Record<string, GameState> {
 
 function saveAll(data: Record<string, GameState>): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadHistory(): CompletedGame[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(history: CompletedGame[]): void {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
 export class LocalStorageGameService implements IGameService {
@@ -40,12 +54,13 @@ export class LocalStorageGameService implements IGameService {
 
   async submitBids(
     gameId: string,
-    bids: { playerId: string; bid: number }[]
+    bids: { playerId: string; bid: number }[],
+    trumpSuit?: TrumpSuit
   ): Promise<GameState> {
     const all = loadAll();
     const game = all[gameId];
     if (!game) throw new Error(`Game ${gameId} not found`);
-    const updated = submitBids(game, bids);
+    const updated = submitBids(game, bids, trumpSuit);
     all[gameId] = updated;
     saveAll(all);
     return updated;
@@ -89,5 +104,20 @@ export class LocalStorageGameService implements IGameService {
 
   clearActiveGameId(): void {
     localStorage.removeItem(ACTIVE_GAME_KEY);
+  }
+
+  async saveCompletedGame(game: CompletedGame): Promise<void> {
+    const history = loadHistory();
+    history.push(game);
+    saveHistory(history);
+  }
+
+  async getCompletedGames(): Promise<CompletedGame[]> {
+    return loadHistory();
+  }
+
+  async deleteCompletedGame(id: string): Promise<void> {
+    const history = loadHistory().filter((g) => g.id !== id);
+    saveHistory(history);
   }
 }
