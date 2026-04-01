@@ -4,6 +4,11 @@
         "y": true,
         "npx --yes create-vite@latest": true,
         "git remote": true,
-        "git add": true
+        "git add": true,
+        "npm run build": true,
+        "npx cap": true,
+        "ForEach-Object": true,
+        "Get-Unique": true,
+        "Group-Object": true
     }
 }

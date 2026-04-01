@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { calculateMaxHands, generateHandSequence } from '../models/gameLogic';
 import { getCachedPlayers, upsertCachedPlayers } from '../services/PlayerCacheService';
-import type { CachedPlayer } from '../models/types';
 import PlayerSelect from './PlayerSelect';
 
 interface PlayerEntry {
@@ -10,7 +9,11 @@ interface PlayerEntry {
   alias: string;
 }
 
-export default function GameSetup() {
+interface Props {
+  onManagePlayers: () => void;
+}
+
+export default function GameSetup({ onManagePlayers }: Props) {
   const { startGame, lastConfig } = useGame();
 
   const [cachedPlayers, setCachedPlayers] = useState(() => getCachedPlayers());
@@ -193,87 +196,16 @@ export default function GameSetup() {
           Start Game
         </button>
 
-        {/* Manage Players */}
-        <ManagePlayers cachedPlayers={cachedPlayers} onRefresh={refreshCache} />
-      </div>
-    </div>
-  );
-}
-
-function ManagePlayers({ cachedPlayers, onRefresh }: { cachedPlayers: CachedPlayer[]; onRefresh: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [fullName, setFullName] = useState('');
-  const [alias, setAlias] = useState('');
-  const nameRef = useRef<HTMLInputElement>(null);
-
-  function handleAdd() {
-    const fn = fullName.trim();
-    const al = alias.trim() || fn;
-    if (!fn) return;
-    upsertCachedPlayers([{ fullName: fn, alias: al }]);
-    onRefresh();
-    setFullName('');
-    setAlias('');
-    nameRef.current?.focus();
-  }
-
-  return (
-    <div className="border-t border-gray-700 pt-4">
-      <button
-        onClick={() => setOpen(!open)}
-        className="text-sm text-gray-400 hover:text-gray-200 flex items-center gap-1 transition"
-      >
-        <span className={`inline-block transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
-        Manage Players ({cachedPlayers.length})
-      </button>
-
-      {open && (
-        <div className="mt-3 space-y-3">
-          {/* Add new player form */}
-          <div className="flex gap-2">
-            <input
-              ref={nameRef}
-              type="text"
-              placeholder="Full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-              className="flex-1 bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="Alias (optional)"
-              value={alias}
-              onChange={(e) => setAlias(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-              className="flex-1 bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleAdd}
-              disabled={!fullName.trim()}
-              className="px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 disabled:opacity-30 text-sm font-medium transition"
-            >
-              Add
-            </button>
-          </div>
-
-          {/* Existing players list */}
-          {cachedPlayers.length > 0 ? (
-            <ul className="text-sm text-gray-300 space-y-1 max-h-40 overflow-y-auto">
-              {cachedPlayers.map((p) => (
-                <li key={p.id} className="flex justify-between px-2 py-1 rounded bg-gray-700/50">
-                  <span>{p.fullName}</span>
-                  {p.alias !== p.fullName && (
-                    <span className="text-gray-500">({p.alias})</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-gray-500">No players saved yet.</p>
-          )}
+        {/* Manage Players link */}
+        <div className="border-t border-gray-700 pt-4">
+          <button
+            onClick={onManagePlayers}
+            className="text-sm text-gray-400 hover:text-gray-200 transition"
+          >
+            Manage Players ({cachedPlayers.length})
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

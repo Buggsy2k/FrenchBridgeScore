@@ -15,9 +15,9 @@ export default function ScorekeeperPanel() {
   const handsRemaining = totalHands - game.currentHandIndex - (currentHand.phase === 'complete' ? 1 : 0);
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row gap-4 p-3 sm:p-4">
+    <div className="min-h-screen flex flex-col lg:flex-row gap-4 p-3 sm:p-4 lg:justify-center">
       {/* Left panel: current hand input */}
-      <div className="flex-1 max-w-lg mx-auto lg:mx-0 w-full">
+      <div className="flex-1 max-w-lg mx-auto w-full lg:flex-initial">
         <div className="bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 relative">
           {/* Edit names icon */}
           {editingNames ? (
@@ -101,7 +101,7 @@ export default function ScorekeeperPanel() {
       </div>
 
       {/* Right panel: persistent scoreboard */}
-      <div className="lg:w-96 w-full max-w-lg mx-auto lg:mx-0">
+      <div className="lg:w-96 w-full max-w-lg mx-auto lg:mx-0 lg:flex-initial">
         <Scoreboard />
       </div>
     </div>

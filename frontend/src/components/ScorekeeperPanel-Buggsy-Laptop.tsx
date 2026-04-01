@@ -1,0 +1,260 @@
+import { useState, useCallback } from 'react';
+import { useGame } from '../context/GameContext';
+import type { TrumpSuit } from '../models/types';
+import BiddingForm from './BiddingForm';
+import ResultsForm from './ResultsForm';
+import Scoreboard from './Scoreboard';
+import EditPlayersDialog from './EditPlayersDialog';
+
+const SUITS: { value: TrumpSuit; icon: string; color: string }[] = [
+  { value: 'hearts', icon: '♥', color: 'text-red-500' },
+  { value: 'spades', icon: '♠', color: 'text-gray-900' },
+  { value: 'diamonds', icon: '♦', color: 'text-red-500' },
+  { value: 'clubs', icon: '♣', color: 'text-gray-900' },
+];
+
+export default function ScorekeeperPanel() {
+  const { game, submitBids, submitResults, setCurrentTrumpSuit, endCurrentGame } = useGame();
+  const [showEditPlayers, setShowEditPlayers] = useState(false);
+  const [showSuitPicker, setShowSuitPicker] = useState(false);
+  const [totalBid, setTotalBid] = useState<number | null>(null);
+  const [confirmEndGame, setConfirmEndGame] = useState(false);
+  const [pendingResults, setPendingResults] = useState<{ playerId: string; tricksTaken: number }[] | null>(null);
+  const [skipReview, setSkipReview] = useState(false);
+
+  // Re-focus the first digit input (e.g. after suit picker interaction)
+  const refocusFirstInput = useCallback(() => {
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLInputElement>('input[inputmode="numeric"]');
+      el?.focus();
+    });
+  }, []);
+
+  // Intercept results submission to check for missing trump suit
+  const handleSubmitResults = useCallback(
+    async (results: { playerId: string; tricksTaken: number }[]) => {
+      if (!game) return;
+      const hand = game.hands[game.currentHandIndex];
+      if (!hand.trumpSuit) {
+        setPendingResults(results);
+        return;
+      }
+      await submitResults(results);
+    },
+    [game, submitResults]
+  );
+
+  const confirmSubmitWithSuit = useCallback(
+    async (suit?: TrumpSuit) => {
+      if (!pendingResults) return;
+      if (suit) await setCurrentTrumpSuit(suit);
+      await submitResults(pendingResults);
+      setPendingResults(null);
+    },
+    [pendingResults, setCurrentTrumpSuit, submitResults]
+  );
+
+  if (!game) return null;
+
+  const currentHand = game.hands[game.currentHandIndex];
+  const totalHands = game.hands.length;
+
+  return (
+    <div className="min-h-screen flex flex-col lg:flex-row gap-4 p-3 sm:p-4 lg:justify-center">
+      {/* Left panel: current hand input */}
+      <div className="flex-1 max-w-lg mx-auto w-full lg:flex-initial">
+        <div className="bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 relative">
+          <button
+            onClick={() => setShowEditPlayers(true)}
+            className="absolute top-3 right-3 text-gray-600 hover:text-gray-300 transition"
+            title="Edit players"
+          >
+            ✏️
+          </button>
+
+          {/* Hand header */}
+          <div className="text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold">
+              Hand {currentHand.handNumber}{' '}
+              <span className="text-gray-400 text-lg font-normal">of {totalHands}</span>
+            </h2>
+            <div className="flex items-center justify-center gap-4 mt-1">
+              <span className="text-lg text-blue-400 font-semibold">
+                {currentHand.cardsDealt} card{currentHand.cardsDealt !== 1 ? 's' : ''}
+              </span>
+              {currentHand.phase === 'bidding' && totalBid !== null && (
+                <>
+                  <span className="text-lg text-white">—</span>
+                  <span className={`text-lg font-semibold ${
+                    totalBid === currentHand.cardsDealt ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {totalBid === currentHand.cardsDealt
+                      ? 'Even Bid'
+                      : totalBid > currentHand.cardsDealt
+                        ? `${totalBid - currentHand.cardsDealt} Overbid`
+                        : `${currentHand.cardsDealt - totalBid} Underbid`}
+                  </span>
+                </>
+              )}
+              {currentHand.phase === 'results' && (() => {
+                const tb = currentHand.bids.reduce((s, b) => s + b.bid, 0);
+                return (
+                  <>
+                    <span className="text-lg text-white">—</span>
+                    <span className={`text-lg font-semibold ${
+                      tb === currentHand.cardsDealt ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {tb === currentHand.cardsDealt
+                        ? 'Even Bid'
+                        : tb > currentHand.cardsDealt
+                          ? `${tb - currentHand.cardsDealt} Overbid`
+                          : `${currentHand.cardsDealt - tb} Underbid`}
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Trump suit display/picker (results phase) */}
+            {currentHand.phase === 'results' && (
+              <div className="flex items-center justify-center mt-2">
+                {showSuitPicker ? (
+                  <div className="flex items-center gap-3">
+                    {SUITS.map((s) => (
+                      <button
+                        key={s.value}
+                        type="button"
+                        tabIndex={-1}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setCurrentTrumpSuit(s.value);
+                          setShowSuitPicker(false);
+                          refocusFirstInput();
+                        }}
+                        className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition ${
+                          currentHand.trumpSuit === s.value
+                            ? 'bg-blue-600 ring-2 ring-blue-400'
+                            : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                      >
+                        <span className={s.color}>{s.icon}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setShowSuitPicker(true)}
+                    className="w-10 h-10 rounded-lg text-xl flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition"
+                  >
+                    {currentHand.trumpSuit ? (
+                      <span className={SUITS.find((s) => s.value === currentHand.trumpSuit)!.color}>
+                        {SUITS.find((s) => s.value === currentHand.trumpSuit)!.icon}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">?</span>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Phase-specific form */}
+          {currentHand.phase === 'bidding' && (
+            <BiddingForm
+              hand={currentHand}
+              players={game.players}
+              onSubmit={submitBids}
+              onTotalBidChange={setTotalBid}
+              skipReview={skipReview}
+              onSkipReviewChange={setSkipReview}
+            />
+          )}
+          {currentHand.phase === 'results' && (
+            <ResultsForm
+              hand={currentHand}
+              players={game.players}
+              onSubmit={handleSubmitResults}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Right panel: persistent scoreboard */}
+      <div className="lg:w-96 w-full max-w-lg mx-auto lg:mx-0 lg:flex-initial space-y-4">
+        <Scoreboard />
+
+        {/* End Game button */}
+        {confirmEndGame ? (
+          <div className="bg-red-900/30 border border-red-600/50 rounded-xl p-4 space-y-3">
+            <p className="text-center text-red-300 font-semibold">End the game now?</p>
+            <p className="text-center text-gray-400 text-sm">Only completed hands will be scored.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmEndGame(false)}
+                className="flex-1 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { endCurrentGame(); setConfirmEndGame(false); }}
+                className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold transition"
+              >
+                End Game
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmEndGame(true)}
+            className="w-full py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-500 hover:text-gray-300 text-sm font-semibold transition"
+          >
+            End Game Early
+          </button>
+        )}
+      </div>
+
+      {showEditPlayers && (
+        <EditPlayersDialog onClose={() => setShowEditPlayers(false)} />
+      )}
+
+      {/* Trump suit missing dialog */}
+      {pendingResults && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="text-xl font-bold text-center">No Trump Suit</h3>
+            <p className="text-gray-400 text-center text-sm">Select the trump suit, or continue without one.</p>
+            <div className="flex justify-center gap-3">
+              {SUITS.map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => confirmSubmitWithSuit(s.value)}
+                  className="w-14 h-14 rounded-lg text-2xl flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition"
+                >
+                  <span className={s.color}>{s.icon}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingResults(null)}
+                className="flex-1 py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => confirmSubmitWithSuit()}
+                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition"
+              >
+                Skip Suit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

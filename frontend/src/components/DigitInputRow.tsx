@@ -11,6 +11,8 @@ interface DigitInputRowProps {
   nextFocusRef?: React.RefObject<HTMLElement | null>;
   /** If set, show a dealer icon next to this player */
   dealerPlayerId?: string;
+  /** Optional per-player content shown to the right of the input, keyed by player id */
+  rightLabels?: Record<string, React.ReactNode>;
 }
 
 /**
@@ -27,6 +29,7 @@ export default function DigitInputRow({
   autoFocus = false,
   nextFocusRef,
   dealerPlayerId,
+  rightLabels,
 }: DigitInputRowProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -119,7 +122,10 @@ export default function DigitInputRow({
                 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/30 focus:bg-gray-700
               `}
             />
-            <span className="text-sm text-gray-500 w-10">/ {maxValue}</span>
+            {rightLabels && rightLabels[player.id] !== undefined
+              ? rightLabels[player.id]
+              : <span className="text-sm text-gray-500 w-10">/ {maxValue}</span>
+            }
           </div>
         );
       })}

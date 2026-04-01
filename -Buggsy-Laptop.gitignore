@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+
+# Environment files
+.env
+.env.*
+
+# Capacitor
+frontend/android/app/src/main/assets/public/
+frontend/android/app/src/main/assets/capacitor.config.json
+frontend/android/app/src/main/assets/capacitor.plugins.json
+frontend/android/.idea/
+frontend/android/local.properties
+frontend/android/keystore.properties
+frontend/android/app/french-bridge.keystore
+frontend/android/app/build/
+frontend/android/capacitor-cordova-android-plugins/build/
+
+# Editor / OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*~
+Thumbs.db
+Desktop.ini

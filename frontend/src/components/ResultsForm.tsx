@@ -35,22 +35,37 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
     onSubmit(results);
   }
 
+  const totalBids = useMemo(
+    () => players.reduce((s, p) => s + (hand.bids.find((b) => b.playerId === p.id)?.bid ?? 0), 0),
+    [players, hand.bids]
+  );
+  const bidDiff = totalBids - hand.cardsDealt;
+
+  const rightLabels = useMemo(
+    () => Object.fromEntries(
+      players.map((p) => {
+        const bid = hand.bids.find((b) => b.playerId === p.id)?.bid ?? 0;
+        return [p.id, (
+          <span className="text-2xl sm:text-3xl font-bold text-blue-400 w-10 text-center" title="Bid">
+            {bid}
+          </span>
+        )];
+      })
+    ),
+    [players, hand.bids]
+  );
+
   return (
     <div className="space-y-4">
-      {/* Bid reminder */}
-      <div className="bg-gray-800/60 rounded-xl p-3 space-y-1">
-        <div className="text-sm text-gray-400 font-medium mb-1">Tricks wanted:</div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {players.map((p) => {
-            const bid = hand.bids.find((b) => b.playerId === p.id)?.bid ?? 0;
-            return (
-              <span key={p.id} className="text-base">
-                <span className="font-semibold">{p.name}</span>{' '}
-                <span className="text-blue-400 font-bold">{bid}</span>
-              </span>
-            );
-          })}
-        </div>
+      {/* Bid analysis */}
+      <div className="text-center text-lg">
+        {bidDiff === 0 ? (
+          <span className="font-bold text-green-400">Even</span>
+        ) : (
+          <span className="font-bold text-red-400">
+            {Math.abs(bidDiff)} {bidDiff > 0 ? 'overbid' : 'underbid'}
+          </span>
+        )}
       </div>
 
       <DigitInputRow
@@ -60,6 +75,7 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
         onChange={handleChange}
         autoFocus
         nextFocusRef={submitBtnRef}
+        rightLabels={rightLabels}
       />
 
       {/* Tricks total + score preview */}

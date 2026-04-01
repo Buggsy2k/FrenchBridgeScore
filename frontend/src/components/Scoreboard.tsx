@@ -67,16 +67,16 @@ export default function Scoreboard() {
         <p className="text-center text-gray-500 text-sm">No hands completed yet</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead>
               <tr className="border-b border-gray-600">
-                <th className="text-left py-1 px-1 text-gray-400">Cards</th>
+                <th className="text-left py-2 px-1 text-gray-400">Cards</th>
                 {game.players.map((p) => {
                   const isLeader = lastTotals && lastTotals[p.id] === leadScore && leadScore > 0;
                   return (
                     <th
                       key={p.id}
-                      className={`text-center py-1 px-1 truncate max-w-[5rem] ${
+                      className={`text-center py-2 px-1 truncate max-w-[5rem] ${
                         isLeader ? 'text-yellow-400' : 'text-gray-400'
                       }`}
                     >
@@ -155,15 +155,15 @@ export default function Scoreboard() {
                     className="border-b border-gray-700/50 cursor-pointer hover:bg-gray-700/30 transition"
                     onClick={() => startEditing(h)}
                   >
-                    <td className="py-1 px-1 text-gray-500">{h.cardsDealt}</td>
+                    <td className="py-2 px-1 text-gray-500">{h.cardsDealt}</td>
                     {game.players.map((p) => {
                       const r = h.results.find((x) => x.playerId === p.id);
                       const total = runningTotals[i]?.[p.id] ?? 0;
                       const made = r ? r.bid === r.tricksTaken : false;
                       return (
-                        <td key={p.id} className="text-center py-1 px-1">
+                        <td key={p.id} className="text-center py-2 px-1">
                           {r && (
-                            <div className="text-xs leading-tight">
+                            <div className="text-sm leading-tight">
                               {made ? (
                                 <span className="text-green-400/70">{r.score}</span>
                               ) : (
@@ -174,7 +174,7 @@ export default function Scoreboard() {
                               )}
                             </div>
                           )}
-                          <span className="font-bold tabular-nums">{total}</span>
+                          <span className="font-bold text-lg tabular-nums">{total}</span>
                         </td>
                       );
                     })}

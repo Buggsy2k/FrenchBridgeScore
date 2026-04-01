@@ -1,0 +1,94 @@
+// ─── Core Domain Models ───
+
+/** A player stored in the persistent player cache (localStorage). */
+export interface CachedPlayer {
+  id: string;
+  fullName: string;
+  alias: string;
+}
+
+export interface Player {
+  id: string;
+  name: string;      // alias used during game display
+  fullName: string;   // full name for identification
+  order: number;      // 0-based seating position
+}
+
+export interface HandBid {
+  playerId: string;
+  bid: number;
+}
+
+export interface HandResult {
+  playerId: string;
+  bid: number;
+  tricksTaken: number;
+  score: number;
+}
+
+export type TrumpSuit = 'hearts' | 'spades' | 'diamonds' | 'clubs';
+
+export interface Hand {
+  handNumber: number; // 1-based index in the sequence
+  cardsDealt: number;
+  dealerPlayerId: string;
+  trumpSuit?: TrumpSuit;
+  phase: 'bidding' | 'results' | 'complete';
+  bids: HandBid[];
+  results: HandResult[];
+}
+
+export interface GameConfig {
+  playerIds: string[];     // persistent unique IDs from player cache
+  playerNames: string[];   // aliases used during game
+  playerFullNames: string[]; // full names for cache
+  firstDealerIndex: number;
+  maxHands: number;
+}
+
+export type GamePhase = 'setup' | 'playing' | 'finished';
+
+export interface GameState {
+  id: string;
+  config: GameConfig;
+  players: Player[];
+  hands: Hand[];
+  currentHandIndex: number; // index into hands[]
+  phase: GamePhase;
+  createdAt: string;
+}
+
+// ─── Derived / computed helpers ───
+
+export interface PlayerScore {
+  playerId: string;
+  playerName: string;
+  totalScore: number;
+  handScores: { handNumber: number; score: number; bid: number; tricksTaken: number }[];
+}
+
+// ─── Game History ───
+
+export interface CompletedGame {
+  id: string;
+  gameId: string;
+  players: Player[];
+  hands: Hand[];
+  config: GameConfig;
+  scoreboard: PlayerScore[];
+  winner: { playerId: string; playerName: string; totalScore: number };
+  completedAt: string;
+  createdAt: string;
+}
+
+export interface PlayerStats {
+  playerId: string;
+  playerName: string;
+  gamesPlayed: number;
+  wins: number;
+  winRate: number;
+  avgScore: number;
+  bestScore: number;
+  totalScore: number;
+  avgAccuracy: number; // % of hands where bid === tricksTaken
+}

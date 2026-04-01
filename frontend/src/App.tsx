@@ -1,12 +1,57 @@
+import { useState } from 'react';
 import { useGame } from './context/GameContext';
 import GameSetup from './components/GameSetup';
+import ManagePlayers from './components/ManagePlayers';
 import ScorekeeperPanel from './components/ScorekeeperPanel';
 import GameOver from './components/GameOver';
 
-export default function App() {
-  const { game } = useGame();
+function RecoveryPrompt() {
+  const { savedGame, resumeGame, dismissSavedGame } = useGame();
+  if (!savedGame) return null;
 
-  if (!game) return <GameSetup />;
+  const players = savedGame.players.map((p) => p.name).join(', ');
+  const currentHand = savedGame.currentHandIndex + 1;
+  const totalHands = savedGame.hands.length;
+
+  return (
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full text-center space-y-4">
+        <h2 className="text-xl font-bold text-white">Game in Progress</h2>
+        <p className="text-gray-300">
+          {players}
+        </p>
+        <p className="text-gray-400 text-sm">
+          Hand {currentHand} of {totalHands}
+        </p>
+        <div className="flex flex-col gap-3 pt-2">
+          <button
+            onClick={resumeGame}
+            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl text-lg"
+          >
+            Resume Game
+          </button>
+          <button
+            onClick={dismissSavedGame}
+            className="w-full py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-xl text-lg"
+          >
+            Start New Game
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const { game, savedGame } = useGame();
+  const [page, setPage] = useState<'setup' | 'manage'>('setup');
+
+  if (!game && savedGame) return <RecoveryPrompt />;
+
+  if (!game) {
+    if (page === 'manage') return <ManagePlayers onBack={() => setPage('setup')} />;
+    return <GameSetup onManagePlayers={() => setPage('manage')} />;
+  }
   if (game.phase === 'finished') return <GameOver />;
   return <ScorekeeperPanel />;
 }

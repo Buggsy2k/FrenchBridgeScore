@@ -37,3 +37,18 @@ export function upsertCachedPlayers(players: { fullName: string; alias: string }
   }
   savePlayers(existing);
 }
+
+export function updateCachedPlayer(id: string, fullName: string, alias: string): void {
+  const existing = loadPlayers();
+  const player = existing.find((p) => p.id === id);
+  if (player) {
+    player.fullName = fullName;
+    player.alias = alias;
+    savePlayers(existing);
+  }
+}
+
+export function deleteCachedPlayer(id: string): void {
+  const existing = loadPlayers().filter((p) => p.id !== id);
+  savePlayers(existing);
+}

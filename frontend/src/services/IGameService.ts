@@ -13,4 +13,7 @@ export interface IGameService {
   submitResults(gameId: string, results: { playerId: string; tricksTaken: number }[]): Promise<GameState>;
   listGames(): Promise<{ id: string; createdAt: string; playerNames: string[] }[]>;
   deleteGame(id: string): Promise<void>;
+  getActiveGameId(): string | null;
+  setActiveGameId(id: string): void;
+  clearActiveGameId(): void;
 }

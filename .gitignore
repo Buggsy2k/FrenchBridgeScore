@@ -1,4 +1,5 @@
 # Dependencies
+node_modules/
 frontend/node_modules/
 
 # Build output
@@ -7,6 +8,18 @@ frontend/dist/
 # Environment files
 .env
 .env.*
+
+# Capacitor / Android
+frontend/android/app/src/main/assets/public/
+frontend/android/app/src/main/assets/capacitor.config.json
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/capacitor-cordova-android-plugins/build/
+frontend/android/.gradle/
+frontend/android/.idea/
+frontend/android/local.properties
+frontend/android/keystore.properties
+frontend/android/app/french-bridge.keystore
 
 # Editor / OS
 .vscode/*
