@@ -8,6 +8,35 @@ import {
   reorderCachedPlayer,
 } from '../services/PlayerCacheService';
 
+function exportPlayers(players: CachedPlayer[]) {
+  const data = players.map(({ fullName, alias }) => ({ fullName, alias }));
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'french-bridge-players.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseImportedPlayers(text: string): { fullName: string; alias: string }[] | null {
+  try {
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) return null;
+    const result: { fullName: string; alias: string }[] = [];
+    for (const item of parsed) {
+      if (typeof item?.fullName !== 'string' || !item.fullName.trim()) return null;
+      result.push({
+        fullName: item.fullName.trim(),
+        alias: typeof item.alias === 'string' && item.alias.trim() ? item.alias.trim() : item.fullName.trim(),
+      });
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 interface Props {
   onBack: () => void;
   embedded?: boolean;
@@ -21,8 +50,11 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
   const [editFullName, setEditFullName] = useState('');
   const [editAlias, setEditAlias] = useState('');
   const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function refresh() {
     setPlayers(getCachedPlayers());
@@ -55,6 +87,36 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
     setFullName('');
     setAlias('');
     nameRef.current?.focus();
+  }
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    setImportError(null);
+    setImportSuccess(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result as string;
+      const imported = parseImportedPlayers(text);
+      if (!imported || imported.length === 0) {
+        setImportError('Invalid file format. Expected a JSON array of players with fullName fields.');
+        return;
+      }
+      const existing = getCachedPlayers();
+      const existingNames = new Set(existing.map((p) => p.fullName.toLowerCase()));
+      const toAdd = imported.filter((p) => !existingNames.has(p.fullName.toLowerCase()));
+      if (toAdd.length > 0) {
+        upsertCachedPlayers(toAdd);
+        refresh();
+      }
+      const skipped = imported.length - toAdd.length;
+      const parts: string[] = [];
+      if (toAdd.length > 0) parts.push(`${toAdd.length} imported`);
+      if (skipped > 0) parts.push(`${skipped} skipped (already exist)`);
+      setImportSuccess(parts.join(', '));
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   }
 
   function startEdit(p: CachedPlayer) {
@@ -238,6 +300,41 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
             </ul>
           ) : (
             <p className="text-gray-500">No players saved yet. Add some above!</p>
+          )}
+        </div>
+
+        {/* Export / Import */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-400 mb-2">
+            Export / Import
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => exportPlayers(players)}
+              disabled={players.length === 0}
+              className="flex-1 py-2.5 rounded-xl bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-sm font-medium transition"
+            >
+              Export Players
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 py-2.5 rounded-xl bg-gray-700 hover:bg-gray-600 text-sm font-medium transition"
+            >
+              Import Players
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImportFile}
+              className="hidden"
+            />
+          </div>
+          {importError && (
+            <p className="text-red-400 text-sm">{importError}</p>
+          )}
+          {importSuccess && (
+            <p className="text-green-400 text-sm">{importSuccess}</p>
           )}
         </div>
       </div>
