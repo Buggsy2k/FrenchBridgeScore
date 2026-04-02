@@ -9,18 +9,9 @@ frontend/dist/
 .env
 .env.*
 
-# Capacitor / Android
+# Capacitor
 frontend/android/app/src/main/assets/public/
 frontend/android/app/src/main/assets/capacitor.config.json
-frontend/android/app/src/main/assets/capacitor.plugins.json
-frontend/android/app/build/
-frontend/android/build/
-frontend/android/capacitor-cordova-android-plugins/build/
-frontend/android/.gradle/
-frontend/android/.idea/
-frontend/android/local.properties
-frontend/android/keystore.properties
-frontend/android/app/french-bridge.keystore
 
 # Editor / OS
 .vscode/*
@@ -30,7 +21,3 @@ frontend/android/app/french-bridge.keystore
 *~
 Thumbs.db
 Desktop.ini
-
-# OneDrive sync conflict files
-*-Buggsy-Laptop*
-*-Buggsy-Laptop-2*
