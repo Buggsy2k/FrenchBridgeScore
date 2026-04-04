@@ -8,7 +8,25 @@
 # (You may need to enable "Install from unknown sources" in Android settings.)
 
 $ErrorActionPreference = "Stop"
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+
+# Find a suitable JDK 17+ for Android Gradle Plugin
+$javaHomeCandidates = @(
+    "C:\Program Files\Android\Android Studio\jbr",
+    "C:\Program Files\Microsoft\jdk-21.0.10.7-hotspot"
+)
+$env:JAVA_HOME = $javaHomeCandidates | Where-Object { Test-Path "$_\bin\java.exe" } | Select-Object -First 1
+if (-not $env:JAVA_HOME) { throw "No suitable JDK found. Install JDK 17+ and update this script." }
+Write-Host "Using JAVA_HOME: $env:JAVA_HOME" -ForegroundColor Cyan
+
+# Ensure ANDROID_HOME is set for Gradle
+if (-not $env:ANDROID_HOME) {
+    $sdkCandidates = @(
+        "$env:LOCALAPPDATA\Android\Sdk",
+        "$env:USERPROFILE\AppData\Local\Android\Sdk"
+    )
+    $env:ANDROID_HOME = $sdkCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+if (-not $env:ANDROID_HOME) { throw "Android SDK not found. Run Android Studio setup wizard first." }
 
 Push-Location "$PSScriptRoot\frontend"
 try {

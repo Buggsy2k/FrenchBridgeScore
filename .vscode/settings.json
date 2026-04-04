@@ -13,7 +13,11 @@
         "Get-Command": true,
         "&": true,
         ".\\build_android_apk.ps1": true,
-        ".\\gradlew.bat": true
+        ".\\gradlew.bat": true,
+        "npm install": true,
+        "Test-Path": true,
+        "winget": true,
+        "ForEach-Object": true
     },
     "files.exclude": {
         "frontend/android": true
