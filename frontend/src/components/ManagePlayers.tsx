@@ -1,4 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import type { CachedPlayer } from '../models/types';
 import {
   getCachedPlayers,
@@ -8,15 +11,40 @@ import {
   reorderCachedPlayer,
 } from '../services/PlayerCacheService';
 
-function exportPlayers(players: CachedPlayer[]) {
+const EXPORT_FILENAME = 'french-bridge-players.json';
+
+async function exportPlayers(players: CachedPlayer[]): Promise<string> {
   const data = players.map(({ fullName, alias }) => ({ fullName, alias }));
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const json = JSON.stringify(data, null, 2);
+
+  if (Capacitor.isNativePlatform()) {
+    await Filesystem.writeFile({
+      path: EXPORT_FILENAME,
+      data: json,
+      directory: Directory.Cache,
+      encoding: Encoding.UTF8,
+    });
+    const { uri } = await Filesystem.getUri({
+      path: EXPORT_FILENAME,
+      directory: Directory.Cache,
+    });
+    await Share.share({
+      title: 'French Bridge Players',
+      text: 'French Bridge player list',
+      url: uri,
+      dialogTitle: 'Export players',
+    });
+    return `Shared ${players.length} players.`;
+  }
+
+  const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'french-bridge-players.json';
+  a.download = EXPORT_FILENAME;
   a.click();
   URL.revokeObjectURL(url);
+  return `Downloaded ${EXPORT_FILENAME} (${players.length} players).`;
 }
 
 function parseImportedPlayers(text: string): { fullName: string; alias: string }[] | null {
@@ -52,6 +80,8 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
   const [reorderingId, setReorderingId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +173,19 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
     deleteCachedPlayer(id);
     if (editingId === id) setEditingId(null);
     refresh();
+  }
+
+  async function handleExport() {
+    setExportStatus(null);
+    setExportError(null);
+    try {
+      const status = await exportPlayers(players);
+      setExportStatus(status);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (/cancel/i.test(message)) return;
+      setExportError(`Export failed: ${message}`);
+    }
   }
 
   const content = (
@@ -310,7 +353,7 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
           </label>
           <div className="flex gap-2">
             <button
-              onClick={() => exportPlayers(players)}
+              onClick={handleExport}
               disabled={players.length === 0}
               className="flex-1 py-2.5 rounded-xl bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-sm font-medium transition"
             >
@@ -330,6 +373,12 @@ export default function ManagePlayers({ onBack, embedded }: Props) {
               className="hidden"
             />
           </div>
+          {exportStatus && (
+            <p className="text-green-400 text-sm">{exportStatus}</p>
+          )}
+          {exportError && (
+            <p className="text-red-400 text-sm">{exportError}</p>
+          )}
           {importError && (
             <p className="text-red-400 text-sm">{importError}</p>
           )}

@@ -59,6 +59,11 @@ if (Test-Path $apk) {
     $size = [math]::Round((Get-Item $apk).Length / 1MB, 2)
     Write-Host "`nRelease APK built successfully ($size MB):" -ForegroundColor Green
     Write-Host "  $apk" -ForegroundColor Yellow
+
+    $rootApk = "$PSScriptRoot\app-release.apk"
+    Copy-Item $apk $rootApk -Force
+    Write-Host "Copied APK to project root:" -ForegroundColor Green
+    Write-Host "  $rootApk" -ForegroundColor Yellow
 } else {
     Write-Host "`nBuild completed but APK not found at expected location." -ForegroundColor Red
 }
