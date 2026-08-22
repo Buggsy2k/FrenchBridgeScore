@@ -15,6 +15,7 @@ export default function Scoreboard() {
   const [editingHand, setEditingHand] = useState<number | null>(null);
   const [drafts, setDrafts] = useState<Record<string, { bid: number; tricks: number }>>({});
   const [draftTrump, setDraftTrump] = useState<TrumpSuit | ''>('');
+  const [newestFirst, setNewestFirst] = useState(true);
 
   if (!game) return null;
 
@@ -70,9 +71,25 @@ export default function Scoreboard() {
     }));
   }
 
+  const orderedHands = newestFirst
+    ? completedHands.map((h, i) => ({ h, i })).reverse()
+    : completedHands.map((h, i) => ({ h, i }));
+
   return (
     <div className="bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-6 space-y-3">
-      <h3 className="text-xl font-bold text-center">Scoreboard</h3>
+      <div className="relative flex items-center justify-center">
+        {completedHands.length > 0 && (
+          <button
+            onClick={() => setNewestFirst((v) => !v)}
+            title={newestFirst ? 'Showing newest first — click to show oldest first' : 'Showing oldest first — click to show newest first'}
+            className="absolute left-0 flex items-center gap-1 text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium transition"
+          >
+            <span>{newestFirst ? '↓' : '↑'}</span>
+            <span className="hidden sm:inline">{newestFirst ? 'Newest' : 'Oldest'}</span>
+          </button>
+        )}
+        <h3 className="text-xl font-bold text-center">Scoreboard</h3>
+      </div>
 
       {completedHands.length === 0 ? (
         <p className="text-center text-gray-500 text-sm">No hands completed yet</p>
@@ -106,7 +123,7 @@ export default function Scoreboard() {
               </tr>
             </thead>
             <tbody>
-              {completedHands.map((h, i) => {
+              {orderedHands.map(({ h, i }) => {
                 const isEditing = editingHand === h.handNumber;
 
                 if (isEditing) {

@@ -1,5 +1,12 @@
 import { useRef, useEffect, useCallback } from 'react';
-import type { Player } from '../models/types';
+import type { Player, TrumpSuit } from '../models/types';
+
+const SUIT_META: Record<TrumpSuit, { icon: string; color: string }> = {
+  hearts:   { icon: '♥', color: 'text-red-600' },
+  spades:   { icon: '♠', color: 'text-gray-900' },
+  diamonds: { icon: '♦', color: 'text-red-600' },
+  clubs:    { icon: '♣', color: 'text-gray-900' },
+};
 
 interface DigitInputRowProps {
   players: Player[];
@@ -11,6 +18,8 @@ interface DigitInputRowProps {
   nextFocusRef?: React.RefObject<HTMLElement | null>;
   /** If set, show a dealer icon next to this player */
   dealerPlayerId?: string;
+  /** Trump suit shown on the dealer card once determined; defaults to hearts */
+  dealerSuit?: TrumpSuit | null;
   /** Optional per-player content shown to the right of the input, keyed by player id */
   rightLabels?: Record<string, React.ReactNode>;
   /** If set, reject a digit when the sum of all values would exceed this total */
@@ -33,6 +42,7 @@ export default function DigitInputRow({
   autoFocus = false,
   nextFocusRef,
   dealerPlayerId,
+  dealerSuit,
   rightLabels,
   totalBudget,
   onReject,
@@ -101,14 +111,17 @@ export default function DigitInputRow({
         return (
           <div key={player.id} className="flex items-center gap-3">
             <span className="text-lg sm:text-xl font-semibold w-28 sm:w-36 truncate text-right flex items-center justify-end gap-1">
-              {dealerPlayerId === player.id && (
-                <span
-                  className="inline-flex items-center justify-center w-7 h-9 bg-white rounded text-red-600 text-lg font-bold leading-none shadow"
-                  title="Dealer"
-                >
-                  ♥
-                </span>
-              )}
+              {dealerPlayerId === player.id && (() => {
+                const suit = SUIT_META[dealerSuit ?? 'hearts'];
+                return (
+                  <span
+                    className={`inline-flex items-center justify-center w-7 h-9 bg-white rounded ${suit.color} text-lg font-bold leading-none shadow`}
+                    title="Dealer"
+                  >
+                    {suit.icon}
+                  </span>
+                );
+              })()}
               {player.name}
             </span>
             <input

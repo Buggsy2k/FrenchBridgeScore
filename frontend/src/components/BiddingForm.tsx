@@ -137,6 +137,7 @@ export default function BiddingForm({ hand, players, onSubmit, onTotalBidChange,
         autoFocus
         nextFocusRef={lockBtnRef}
         dealerPlayerId={hand.dealerPlayerId}
+        dealerSuit={trumpSuit}
       />
 
       <div className="text-center text-lg">

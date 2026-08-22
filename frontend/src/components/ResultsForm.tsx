@@ -81,6 +81,8 @@ export default function ResultsForm({ hand, players, onSubmit }: ResultsFormProp
         autoFocus
         nextFocusRef={submitBtnRef}
         rightLabels={rightLabels}
+        dealerPlayerId={hand.dealerPlayerId}
+        dealerSuit={hand.trumpSuit}
       />
 
       {/* Tricks total + score preview */}
